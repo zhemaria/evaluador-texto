@@ -551,11 +551,6 @@
     </button>
 
     <script>
-      // ==========================================
-      // CONFIGURACIÓN - pon tu API key de Groq aquí
-      // ==========================================
-      const GROQ_API_KEY = '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';
-      // ==========================================
 
       const cache = {responses: {}};
       const chatbox = document.getElementById('chatbox');
@@ -804,22 +799,26 @@ RECORDATORIO FINAL:
 - Una respuesta sin citas de AMBOS textos NO puede obtener más de 1 punto en Característica 1
 - Indica con exactitud qué subdimensiones pasan y cuáles fallan`;
 
-        try {
-const response = await fetch("https://math-backend-zs9j.onrender.com/generate", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ]
-  })
-});
+try {
+  const response = await fetch("https://math-backend-zs9j.onrender.com/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ]
+    })
+  });
 
-const data = await response.json();
-let aiResponse = data.choices[0].message.content;
+  const data = await response.json();
+  let aiResponse = data.choices[0].message.content;
+
+} catch (error) {
+  console.error("Error:", error);
+}
 
           if (!response.ok) {
             throw new Error(json.error?.message || `Error HTTP ${response.status}`);
