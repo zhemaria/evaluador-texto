@@ -7,23 +7,15 @@
     <script>
       window.MathJax = {
         tex: {
-          inlineMath: [
-            ['$', '$'],
-            ['\\(', '\\)']
-          ],
-          displayMath: [
-            ['$$', '$$'],
-            ['\\[', '\\]']
-          ]
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
         },
         options: {
           enableMenu: false,
           processHtmlClass: 'tex2jax_process',
           ignoreHtmlClass: 'tex2jax_ignore'
         },
-        startup: {
-          pageReady: () => MathJax.startup.defaultPageReady()
-        }
+        startup: { pageReady: () => MathJax.startup.defaultPageReady() }
       };
     </script>
     <script id="MathJax-script" defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.min.js"></script>
@@ -38,14 +30,9 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        transition:
-          background-color 0.3s,
-          color 0.3s;
+        transition: background-color 0.3s, color 0.3s;
       }
-      body.dark {
-        background-color: #1a2332;
-        color: #e1ecf7;
-      }
+      body.dark { background-color: #1a2332; color: #e1ecf7; }
 
       h1 {
         background-color: #4a90e2;
@@ -91,21 +78,16 @@
       .help-modal {
         display: none;
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.5);
         z-index: 1000;
         justify-content: center;
         align-items: center;
         opacity: 0;
         transition: opacity 0.3s;
       }
-      .help-modal.active {
-        display: flex;
-        opacity: 1;
-      }
+      .help-modal.active { display: flex; opacity: 1; }
 
       .help-content {
         width: 90%;
@@ -113,33 +95,25 @@
         background-color: #fff;
         border-radius: 10px;
         padding: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         position: relative;
         max-height: 85vh;
         overflow-y: auto;
         border-top: 5px solid #4a90e2;
       }
-      body.dark .help-content {
-        background-color: #2a3847;
-        color: #e1ecf7;
-      }
+      body.dark .help-content { background-color: #2a3847; color: #e1ecf7; }
 
       .close-help {
         position: absolute;
-        top: 10px;
-        right: 10px;
+        top: 10px; right: 10px;
         background: none;
         border: none;
         font-size: 24px;
         cursor: pointer;
         color: #666;
       }
-      body.dark .close-help {
-        color: #e1ecf7;
-      }
-      .close-help:hover {
-        color: #4a90e2;
-      }
+      body.dark .close-help { color: #e1ecf7; }
+      .close-help:hover { color: #4a90e2; }
 
       #chatbox {
         width: 90%;
@@ -150,31 +124,17 @@
         padding: 15px;
         margin-top: 20px;
         background: #fff;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         display: flex;
         flex-direction: column;
         gap: 10px;
         transition: background-color 0.3s;
         border-radius: 8px;
       }
-      body.dark #chatbox {
-        background-color: #2a3847;
-        color: #e1ecf7;
-        border-color: #3a4d63;
-      }
+      body.dark #chatbox { background-color: #2a3847; color: #e1ecf7; border-color: #3a4d63; }
 
-      .message {
-        display: flex;
-        align-items: start;
-        gap: 10px;
-        flex-wrap: wrap;
-        position: relative;
-      }
-      .emoji-avatar {
-        font-size: 40px;
-        min-width: 40px;
-        text-align: center;
-      }
+      .message { display: flex; align-items: start; gap: 10px; flex-wrap: wrap; position: relative; }
+      .emoji-avatar { font-size: 40px; min-width: 40px; text-align: center; }
 
       .text-bubble {
         background-color: #e8f0fe;
@@ -185,18 +145,10 @@
         position: relative;
         padding-right: 40px;
       }
-      body.dark .text-bubble {
-        background-color: #3a4d63;
-      }
+      body.dark .text-bubble { background-color: #3a4d63; }
 
-      .user .text-bubble {
-        background-color: #dbe9ff;
-        margin-left: auto;
-        border-radius: 15px 5px 15px 15px;
-      }
-      .bot .text-bubble {
-        border-radius: 5px 15px 15px 15px;
-      }
+      .user .text-bubble { background-color: #dbe9ff; margin-left: auto; border-radius: 15px 5px 15px 15px; }
+      .bot .text-bubble { border-radius: 5px 15px 15px 15px; }
 
       .evaluation-container {
         margin-top: 15px;
@@ -205,10 +157,7 @@
         border-radius: 8px;
         border: 1px solid #d1e4ff;
       }
-      body.dark .evaluation-container {
-        background-color: #1e2938;
-        border-color: #3a4d63;
-      }
+      body.dark .evaluation-container { background-color: #1e2938; border-color: #3a4d63; }
 
       .trait-evaluation {
         margin: 10px 0;
@@ -217,20 +166,10 @@
         border-radius: 5px;
         border-left: 4px solid #4a90e2;
       }
-      body.dark .trait-evaluation {
-        background-color: #2a3847;
-        border-left-color: #6aa6f8;
-      }
+      body.dark .trait-evaluation { background-color: #2a3847; border-left-color: #6aa6f8; }
 
-      .trait-title {
-        font-weight: bold;
-        color: #357abd;
-        margin-bottom: 5px;
-        font-size: 16px;
-      }
-      body.dark .trait-title {
-        color: #6aa6f8;
-      }
+      .trait-title { font-weight: bold; color: #357abd; margin-bottom: 5px; font-size: 16px; }
+      body.dark .trait-title { color: #6aa6f8; }
 
       .score-badge {
         display: inline-block;
@@ -240,18 +179,9 @@
         margin-left: 10px;
         font-size: 14px;
       }
-      .score-0 {
-        background-color: #ff4444;
-        color: white;
-      }
-      .score-1 {
-        background-color: #ff9944;
-        color: white;
-      }
-      .score-2 {
-        background-color: #44bb66;
-        color: white;
-      }
+      .score-0 { background-color: #ff4444; color: white; }
+      .score-1 { background-color: #ff9944; color: white; }
+      .score-2 { background-color: #44bb66; color: white; }
 
       .total-score {
         font-size: 18px;
@@ -272,11 +202,7 @@
         border-radius: 5px;
         margin: 10px 0;
       }
-      body.dark .warning-box {
-        background-color: #3d2914;
-        border-color: #6c5400;
-        color: #ffc107;
-      }
+      body.dark .warning-box { background-color: #3d2914; border-color: #6c5400; color: #ffc107; }
 
       .error-box {
         background-color: #f8d7da;
@@ -286,37 +212,26 @@
         border-radius: 5px;
         margin: 10px 0;
       }
-      body.dark .error-box {
-        background-color: #2d1b1e;
-        border-color: #842029;
-        color: #f8d7da;
-      }
+      body.dark .error-box { background-color: #2d1b1e; border-color: #842029; color: #f8d7da; }
 
       .copy-btn {
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: 8px; right: 8px;
         background: #4a90e2;
         color: white;
         border: none;
         border-radius: 5px;
-        width: 32px;
-        height: 32px;
+        width: 32px; height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         transition: all 0.3s;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         z-index: 10;
       }
-      .copy-btn:hover {
-        background: #357abd;
-        transform: scale(1.1);
-      }
-      .copy-btn i {
-        font-size: 16px;
-      }
+      .copy-btn:hover { background: #357abd; transform: scale(1.1); }
+      .copy-btn i { font-size: 16px; }
 
       .tooltip {
         position: absolute;
@@ -325,16 +240,13 @@
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 12px;
-        top: -30px;
-        right: 0;
+        top: -30px; right: 0;
         opacity: 0;
         transition: opacity 0.3s;
         pointer-events: none;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
       }
-      .tooltip.show {
-        opacity: 1;
-      }
+      .tooltip.show { opacity: 1; }
 
       #text-form {
         display: flex;
@@ -353,13 +265,9 @@
         resize: vertical;
         margin-bottom: 15px;
         font-family: Arial, sans-serif;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       }
-      body.dark textarea {
-        background-color: #2a3847;
-        color: #e1ecf7;
-        border-color: #3a4d63;
-      }
+      body.dark textarea { background-color: #2a3847; color: #e1ecf7; border-color: #3a4d63; }
 
       button {
         padding: 14px 20px;
@@ -371,12 +279,9 @@
         cursor: pointer;
         font-weight: bold;
         transition: background-color 0.3s;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
       }
-      button:hover {
-        background-color: #357abd;
-        transform: scale(1.02);
-      }
+      button:hover { background-color: #357abd; transform: scale(1.02); }
 
       .toggle-btn {
         margin-top: 20px;
@@ -396,35 +301,14 @@
       }
 
       @media (max-width: 768px) {
-        .help-btn {
-          width: 36px;
-          height: 36px;
-          font-size: 18px;
-          right: 15px;
-        }
-        textarea {
-          min-height: 180px;
-        }
+        .help-btn { width: 36px; height: 36px; font-size: 18px; right: 15px; }
+        textarea { min-height: 180px; }
       }
       @media (max-width: 480px) {
-        h1 {
-          font-size: 20px;
-          padding: 15px 0;
-        }
-        .help-btn {
-          width: 32px;
-          height: 32px;
-          font-size: 16px;
-          right: 10px;
-        }
-        textarea {
-          min-height: 150px;
-          font-size: 14px;
-        }
-        button {
-          padding: 12px 15px;
-          font-size: 16px;
-        }
+        h1 { font-size: 20px; padding: 15px 0; }
+        .help-btn { width: 32px; height: 32px; font-size: 16px; right: 10px; }
+        textarea { min-height: 150px; font-size: 14px; }
+        button { padding: 12px 15px; font-size: 16px; }
       }
     </style>
   </head>
@@ -453,20 +337,14 @@
           <br />
           No obstante, al no ser la herramienta verdadera del examen, puede no corresponderse con el resultado del examen oficial.
         </p>
-
         <h4>Sistema de Evaluación Oficial</h4>
-
         <h5>🎯 Característica 1: Argumentación y Uso de Evidencia (12 subdimensiones)</h5>
         <ul style="padding-left: 20px; margin: 10px 0">
-          <li>
-            <strong>Requisito obligatorio:</strong>
-            Debe citar evidencia específica de AMBOS textos fuente
-          </li>
+          <li><strong>Requisito obligatorio:</strong> Debe citar evidencia específica de AMBOS textos fuente</li>
           <li>Generar un argumento claro basado en los textos</li>
           <li>Analizar cuál posición está mejor sustentada</li>
           <li>Distinguir entre afirmaciones fundamentadas y no fundamentadas</li>
         </ul>
-
         <h5>📊 Característica 2: Desarrollo de Ideas y Estructura (15 subdimensiones)</h5>
         <ul style="padding-left: 20px; margin: 10px 0">
           <li>Ideas bien desarrolladas y lógicas</li>
@@ -475,7 +353,6 @@
           <li>Uso apropiado de transiciones</li>
           <li>Estilo formal y tono académico</li>
         </ul>
-
         <h5>✏️ Característica 3: Claridad y Dominio del Español (14 subdimensiones)</h5>
         <ul style="padding-left: 20px; margin: 10px 0">
           <li>Estructura correcta de oraciones</li>
@@ -483,55 +360,28 @@
           <li>Puntuación y mayúsculas apropiadas</li>
           <li>Legibilidad general</li>
         </ul>
-
         <h4>Requisitos Mínimos (CRÍTICOS)</h4>
         <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0">
           <ul style="padding-left: 20px; margin: 5px 0">
-            <li>
-              <strong>Longitud:</strong>
-              300-500 palabras (menos de 300 = penalización severa)
-            </li>
-            <li>
-              <strong>Estructura:</strong>
-              4-7 párrafos organizados
-            </li>
-            <li>
-              <strong>Evidencia textual:</strong>
-              Citas específicas de AMBOS textos
-            </li>
-            <li>
-              <strong>Análisis comparativo:</strong>
-              Determinar cuál argumento está mejor sustentado
-            </li>
+            <li><strong>Longitud:</strong> 300-500 palabras (menos de 300 = penalización severa)</li>
+            <li><strong>Estructura:</strong> 4-7 párrafos organizados</li>
+            <li><strong>Evidencia textual:</strong> Citas específicas de AMBOS textos</li>
+            <li><strong>Análisis comparativo:</strong> Determinar cuál argumento está mejor sustentado</li>
           </ul>
         </div>
-
         <h4>Sistema de Puntuación Oficial</h4>
         <p>Cada característica se evalúa usando subdimensiones con puntuación 0-2:</p>
         <ul style="padding-left: 20px; margin: 10px 0">
-          <li>
-            <strong>0 puntos:</strong>
-            No demuestra la habilidad
-          </li>
-          <li>
-            <strong>1 punto:</strong>
-            Nivel mínimo/inadecuado
-          </li>
-          <li>
-            <strong>2 puntos:</strong>
-            Nivel adecuado/efectivo
-          </li>
+          <li><strong>0 puntos:</strong> No demuestra la habilidad</li>
+          <li><strong>1 punto:</strong> Nivel mínimo/inadecuado</li>
+          <li><strong>2 puntos:</strong> Nivel adecuado/efectivo</li>
         </ul>
-        <p>
-          <strong>Fórmula:</strong>
-          (Suma de puntos) ÷ (Número de subdimensiones) = Puntuación de característica
-        </p>
+        <p><strong>Fórmula:</strong> (Suma de puntos) ÷ (Número de subdimensiones) = Puntuación de característica</p>
         <p>Puntuación máxima total: 6 puntos (2+2+2)</p>
       </div>
     </div>
 
     <div id="chatbox"></div>
-
     <div id="loading" class="loading-indicator">Aplicando rúbrica oficial del GED...</div>
 
     <form id="text-form">
@@ -544,47 +394,42 @@
     </form>
 
     <button class="toggle-btn" onclick="toggleTheme()">
-      <i class="fas fa-moon"></i>
-      /
-      <i class="fas fa-sun"></i>
-      Cambiar tema
+      <i class="fas fa-moon"></i> / <i class="fas fa-sun"></i> Cambiar tema
     </button>
 
     <script>
+      // ─── URL del backend en Render ───────────────────────────────────────────
+      const BACKEND_URL = "https://math-backend-zs9j.onrender.com/generate";
 
-      const cache = {responses: {}};
-      const chatbox = document.getElementById('chatbox');
-      const form = document.getElementById('text-form');
-      const userInput = document.getElementById('user-input');
+      const cache = { responses: {} };
+      const chatbox       = document.getElementById('chatbox');
+      const form          = document.getElementById('text-form');
+      const userInput     = document.getElementById('user-input');
       const loadingIndicator = document.getElementById('loading');
-      const helpModal = document.getElementById('helpModal');
+      const helpModal     = document.getElementById('helpModal');
 
-      function getEmoji(type) {
-        return type === 'user' ? '📝' : '🎓';
-      }
+      function getEmoji(type) { return type === 'user' ? '📝' : '🎓'; }
 
-      function toggleHelp() {
-        helpModal.classList.toggle('active');
-      }
+      function toggleHelp() { helpModal.classList.toggle('active'); }
 
       function toggleTheme() {
         document.body.classList.toggle('dark');
         localStorage.setItem('darkMode', document.body.classList.contains('dark'));
       }
 
-      helpModal.addEventListener('click', function (e) {
+      helpModal.addEventListener('click', function(e) {
         if (e.target === helpModal) toggleHelp();
       });
 
       function debounce(func, wait) {
         let timeout;
-        return function (...args) {
+        return function(...args) {
           clearTimeout(timeout);
           timeout = setTimeout(() => func(...args), wait);
         };
       }
 
-      const renderMathJax = debounce(function (elements) {
+      const renderMathJax = debounce(function(elements) {
         if (window.MathJax && window.MathJax.typeset) {
           window.MathJax.typeset(elements);
         }
@@ -602,11 +447,8 @@
         ta.value = text;
         ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
         document.body.appendChild(ta);
-        ta.focus();
-        ta.select();
-        try {
-          document.execCommand('copy');
-        } catch (e) {}
+        ta.focus(); ta.select();
+        try { document.execCommand('copy'); } catch(e) {}
         document.body.removeChild(ta);
       }
 
@@ -635,7 +477,7 @@
           tooltip.className = 'tooltip';
           tooltip.innerText = '¡Copiado!';
 
-          copyBtn.addEventListener('click', function () {
+          copyBtn.addEventListener('click', function() {
             copyTextToClipboard(text);
             tooltip.classList.add('show');
             setTimeout(() => tooltip.classList.remove('show'), 2000);
@@ -651,28 +493,27 @@
       }
 
       function analyzeTextStructure(texto) {
-        const numPalabras = texto.split(/\s+/).filter(p => p.length > 0).length;
-        const numParrafos = texto.split(/\n\n+|\.\s*\n/).filter(p => p.trim().length > 0).length;
+        const numPalabras     = texto.split(/\s+/).filter(p => p.length > 0).length;
+        const numParrafos     = texto.split(/\n\n+|\.\s*\n/).filter(p => p.trim().length > 0).length;
         const referenciaTextos = /texto|pasaje|autor|fuente|artículo|documento/gi.test(texto);
-        const citasDirectas = /"[^"]+"/g.test(texto) || /según|cita|menciona|afirma/gi.test(texto);
-        const argumentativo = /por tanto|en conclusión|sin embargo|además|por otro lado|en contraste/gi.test(texto);
+        const citasDirectas   = /"[^"]+"/g.test(texto) || /según|cita|menciona|afirma/gi.test(texto);
+        const argumentativo   = /por tanto|en conclusión|sin embargo|además|por otro lado|en contraste/gi.test(texto);
         return {
-          numPalabras,
-          numParrafos,
-          referenciaTextos,
-          citasDirectas,
-          argumentativo,
-          longitudAdecuada: numPalabras >= 300 && numPalabras <= 500,
+          numPalabras, numParrafos, referenciaTextos, citasDirectas, argumentativo,
+          longitudAdecuada:  numPalabras >= 300 && numPalabras <= 500,
           estructuraAdecuada: numParrafos >= 4 && numParrafos <= 7
         };
       }
 
+      // ─── FUNCIÓN PRINCIPAL — LLAMA AL BACKEND EN RENDER ─────────────────────
       async function getBotResponse(ensayo) {
+
+        // Devolver respuesta cacheada si ya existe
         if (cache.responses[ensayo]) return cache.responses[ensayo];
 
         const analisis = analyzeTextStructure(ensayo);
 
-        // Texto demasiado corto → evaluación automática
+        // Texto demasiado corto → evaluación automática sin llamar al backend
         if (analisis.numPalabras < 200) {
           return `<div class="evaluation-container">
             <div class="error-box">
@@ -695,7 +536,8 @@
           </div>`;
         }
 
-        const promptTexto = `INSTRUCCIÓN CRÍTICA: Eres un evaluador certificado del GED Testing Service. Debes aplicar ESTRICTAMENTE la rúbrica oficial con las 41 subdimensiones específicas. NO seas permisivo - aplica los criterios reales del examen.
+        // ── Construir el prompt para el modelo ──
+        const prompt = `INSTRUCCIÓN CRÍTICA: Eres un evaluador certificado del GED Testing Service. Debes aplicar ESTRICTAMENTE la rúbrica oficial con las 41 subdimensiones específicas. NO seas permisivo - aplica los criterios reales del examen.
 
 TEXTO A EVALUAR:
 ${ensayo}
@@ -799,34 +641,37 @@ RECORDATORIO FINAL:
 - Una respuesta sin citas de AMBOS textos NO puede obtener más de 1 punto en Característica 1
 - Indica con exactitud qué subdimensiones pasan y cuáles fallan`;
 
-try {
-  const response = await fetch("https://math-backend-zs9j.onrender.com/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ]
-    })
-  });
-
-  const data = await response.json();
-  let aiResponse = data.choices[0].message.content;
-
-} catch (error) {
-  console.error("Error:", error);
-}
+        // ── Llamada al backend en Render ──────────────────────────────────────
+        try {
+          const response = await fetch(BACKEND_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [
+                { role: "user", content: prompt }
+              ]
+            })
+          });
 
           if (!response.ok) {
-            throw new Error(json.error?.message || `Error HTTP ${response.status}`);
+            // Intentar leer el cuerpo del error
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(errBody.error?.message || `Error HTTP ${response.status}`);
           }
 
-          let data = json.choices[0].message.content.trim();
+          const json = await response.json();
 
-          // Limpiar si el modelo añadió bloques de código
+          // Compatibilidad: el backend puede devolver OpenAI-style o {content: ...}
+          let data = "";
+          if (json.choices && json.choices[0]?.message?.content) {
+            data = json.choices[0].message.content.trim();
+          } else if (json.content) {
+            data = json.content.trim();
+          } else {
+            throw new Error("Respuesta inesperada del backend: " + JSON.stringify(json));
+          }
+
+          // Limpiar si el modelo añadió bloques de código markdown
           data = data
             .replace(/^```html\s*/i, '')
             .replace(/^```\s*/i, '')
@@ -835,21 +680,24 @@ try {
 
           cache.responses[ensayo] = data;
           return data;
+
         } catch (error) {
-          console.error('Error Groq:', error);
+          console.error('Error al llamar al backend:', error);
           return `<div class="evaluation-container">
             <div class="error-box">
-              <strong>⚠️ Error al conectar con Groq:</strong> ${error.message}<br><br>
+              <strong>⚠️ Error al conectar con el backend:</strong> ${error.message}<br><br>
               Posibles causas:<br>
-              • API key incorrecta o vencida<br>
-              • Límite de uso de Groq alcanzado<br>
+              • El servidor en Render está dormido (espera ~30 s y reintenta)<br>
+              • URL del backend incorrecta<br>
               • Problema de conexión a internet<br><br>
-              Verifica la consola del navegador (F12) para más detalles.
+              URL usada: <code>${BACKEND_URL}</code><br>
+              Revisa la consola del navegador (F12) para más detalles.
             </div>
           </div>`;
         }
       }
 
+      // ─── MANEJADOR DEL FORMULARIO ────────────────────────────────────────────
       async function handleSendMessage(e) {
         e.preventDefault();
         const userText = userInput.value.trim();
@@ -870,25 +718,26 @@ try {
         }
       }
 
-      document.addEventListener('DOMContentLoaded', function () {
+      // ─── INICIALIZACIÓN ──────────────────────────────────────────────────────
+      document.addEventListener('DOMContentLoaded', function() {
         if (localStorage.getItem('darkMode') === 'true') {
           document.body.classList.add('dark');
         }
 
         setTimeout(() => {
           addMessage(
-            '¡Hola! Soy el evaluador GED con <strong>rúbrica oficial</strong> (motor: Groq LLaMA 3.3 70B).<br><br>' +
-              '<div class="warning-box">⚠️ Esta herramienta aplica los criterios reales del GED Testing Service de manera estricta. No esperes puntuaciones infladas.</div><br>' +
-              'Implementa las <strong>41 subdimensiones oficiales</strong>:<br>' +
-              '• Característica 1: 12 subdimensiones (Argumentación)<br>' +
-              '• Característica 2: 15 subdimensiones (Desarrollo)<br>' +
-              '• Característica 3: 14 subdimensiones (Español)<br><br>' +
-              '<strong>Requisitos críticos:</strong><br>' +
-              '• 300-500 palabras<br>' +
-              '• 4-7 párrafos<br>' +
-              '• Evidencia de AMBOS textos fuente<br>' +
-              '• Análisis comparativo de argumentos<br><br>' +
-              'Pega tu respuesta extendida para recibir una evaluación realista según los estándares oficiales del GED.',
+            '¡Hola! Soy el evaluador GED con <strong>rúbrica oficial</strong>.<br><br>' +
+            '<div class="warning-box">⚠️ Esta herramienta aplica los criterios reales del GED Testing Service de manera estricta. No esperes puntuaciones infladas.</div><br>' +
+            'Implementa las <strong>41 subdimensiones oficiales</strong>:<br>' +
+            '• Característica 1: 12 subdimensiones (Argumentación)<br>' +
+            '• Característica 2: 15 subdimensiones (Desarrollo)<br>' +
+            '• Característica 3: 14 subdimensiones (Español)<br><br>' +
+            '<strong>Requisitos críticos:</strong><br>' +
+            '• 300-500 palabras<br>' +
+            '• 4-7 párrafos<br>' +
+            '• Evidencia de AMBOS textos fuente<br>' +
+            '• Análisis comparativo de argumentos<br><br>' +
+            'Pega tu respuesta extendida para recibir una evaluación realista según los estándares oficiales del GED.',
             'bot',
             getEmoji('bot')
           );
