@@ -214,6 +214,37 @@
       }
       body.dark .error-box { background-color: #2d1b1e; border-color: #842029; color: #f8d7da; }
 
+      /* ── Lista de subdimensiones ── */
+      .subdim-list {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0 8px 0;
+      }
+      .subdim-list li {
+        padding: 5px 8px;
+        border-radius: 4px;
+        margin-bottom: 4px;
+        font-size: 14px;
+        line-height: 1.4;
+        border-left: 3px solid transparent;
+      }
+      .subdim-list li.ok {
+        background-color: #f0fff4;
+        border-left-color: #44bb66;
+      }
+      .subdim-list li.fail {
+        background-color: #fff5f5;
+        border-left-color: #ff4444;
+      }
+      .subdim-list li.partial {
+        background-color: #fffaf0;
+        border-left-color: #ff9944;
+      }
+      body.dark .subdim-list li.ok     { background-color: #1a2e1e; }
+      body.dark .subdim-list li.fail   { background-color: #2e1a1a; }
+      body.dark .subdim-list li.partial{ background-color: #2e2514; }
+      /* ── fin subdim-list ── */
+
       .copy-btn {
         position: absolute;
         top: 8px; right: 8px;
@@ -604,30 +635,47 @@ REQUISITOS CRÍTICOS (penalizar severamente si faltan):
 - OBLIGATORIO: Evidencia específica de DOS textos fuente diferentes
 - Análisis comparativo de argumentos
 
-INSTRUCCIÓN DE FORMATO: Devuelve ÚNICAMENTE el HTML indicado a continuación. NO uses markdown, NO pongas bloques de código, NO agregues texto antes ni después del HTML.
+INSTRUCCIÓN DE FORMATO — CRÍTICO:
+- Devuelve ÚNICAMENTE el HTML indicado. NO uses markdown, NO pongas bloques de código.
+- Cada subdimensión DEBE ir en su propio <li> separado — NUNCA en línea separadas por "|" ni como texto corrido.
+- Usa class="ok" si puntuación=2, class="partial" si puntuación=1, class="fail" si puntuación=0.
+- Emoji: ✅ para puntuación 2, ⚠️ para puntuación 1, ❌ para puntuación 0.
 
 <div class="evaluation-container">
-  <h3>Evaluación Oficial GED - Rúbrica Certificada</h3>
+  <h3>Evaluación Oficial GED — Rúbrica Certificada</h3>
 
   <div class="trait-evaluation">
     <div class="trait-title">Característica 1: Argumentación y Uso de Evidencia <span class="score-badge score-[X]">[X]/2</span></div>
-    <p><strong>Subdimensiones evaluadas:</strong> Lista cuáles cumplen (✅) y cuáles no (❌), con breve explicación.</p>
-    <p><strong>Puntuación promedio:</strong> [suma total] ÷ 12 = [X redondeado]</p>
-    <p><strong>Problemas detectados:</strong> Descripción específica de las deficiencias según rúbrica.</p>
+    <p><strong>Subdimensiones (12):</strong></p>
+    <ol class="subdim-list">
+      <li class="ok">✅ (2) 1. Afirmaciones claras y explícitas — explicación breve</li>
+      <li class="fail">❌ (0) 2. Lógicas basadas en lectura detallada — explicación breve</li>
+      <!-- una <li> por cada una de las 12 subdimensiones -->
+    </ol>
+    <p><strong>Cálculo:</strong> [suma] ÷ 12 = [X]</p>
+    <p><strong>Problemas detectados:</strong> descripción específica</p>
   </div>
 
   <div class="trait-evaluation">
     <div class="trait-title">Característica 2: Desarrollo de Ideas y Estructura <span class="score-badge score-[Y]">[Y]/2</span></div>
-    <p><strong>Subdimensiones evaluadas:</strong> Lista cuáles cumplen (✅) y cuáles no (❌), con breve explicación.</p>
-    <p><strong>Puntuación promedio:</strong> [suma total] ÷ 15 = [Y redondeado]</p>
-    <p><strong>Problemas detectados:</strong> Descripción específica de las deficiencias según rúbrica.</p>
+    <p><strong>Subdimensiones (15):</strong></p>
+    <ol class="subdim-list">
+      <li class="ok">✅ (2) 1. Ideas bien desarrolladas — explicación breve</li>
+      <!-- una <li> por cada una de las 15 subdimensiones -->
+    </ol>
+    <p><strong>Cálculo:</strong> [suma] ÷ 15 = [Y]</p>
+    <p><strong>Problemas detectados:</strong> descripción específica</p>
   </div>
 
   <div class="trait-evaluation">
     <div class="trait-title">Característica 3: Claridad y Dominio del Español <span class="score-badge score-[Z]">[Z]/2</span></div>
-    <p><strong>Subdimensiones evaluadas:</strong> Lista cuáles cumplen (✅) y cuáles no (❌), con breve explicación.</p>
-    <p><strong>Puntuación promedio:</strong> [suma total] ÷ 14 = [Z redondeado]</p>
-    <p><strong>Problemas detectados:</strong> Descripción específica de las deficiencias según rúbrica.</p>
+    <p><strong>Subdimensiones (14):</strong></p>
+    <ol class="subdim-list">
+      <li class="ok">✅ (2) 1. Estructura variada de oraciones — explicación breve</li>
+      <!-- una <li> por cada una de las 14 subdimensiones -->
+    </ol>
+    <p><strong>Cálculo:</strong> [suma] ÷ 14 = [Z]</p>
+    <p><strong>Problemas detectados:</strong> descripción específica</p>
   </div>
 
   <div class="total-score">Puntuación Total: [X+Y+Z]/6</div>
@@ -639,7 +687,7 @@ INSTRUCCIÓN DE FORMATO: Devuelve ÚNICAMENTE el HTML indicado a continuación. 
 RECORDATORIO FINAL:
 - NO infles puntuaciones, sé estricto y realista
 - Una respuesta sin citas de AMBOS textos NO puede obtener más de 1 punto en Característica 1
-- Indica con exactitud qué subdimensiones pasan y cuáles fallan`;
+- Genera exactamente 12 + 15 + 14 = 41 ítems <li>, uno por subdimensión`;
 
         // ── Llamada al backend en Render ──────────────────────────────────────
         try {
