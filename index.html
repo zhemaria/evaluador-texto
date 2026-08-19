@@ -1,798 +1,1849 @@
-<!doctype html>
+<!DOCTYPE html>
+<!--
+  Evaluador de la respuesta extendida del GED (RLA) — versión con la interfaz de programación gratuita de Groq
+  Autor: José M. Fernández, ABE/ASE Math Master Teacher,
+         Harry S. Truman College — City Colleges of Chicago.
+  Licencia: Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional
+            (CC BY-NC-SA 4.0) — https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es
+-->
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ChatBot Evaluador de Respuesta Extendida GED (Rúbrica Oficial)</title>
-    <script>
-      window.MathJax = {
-        tex: {
-          inlineMath: [['$', '$'], ['\\(', '\\)']],
-          displayMath: [['$$', '$$'], ['\\[', '\\]']]
-        },
-        options: {
-          enableMenu: false,
-          processHtmlClass: 'tex2jax_process',
-          ignoreHtmlClass: 'tex2jax_ignore'
-        },
-        startup: { pageReady: () => MathJax.startup.defaultPageReady() }
-      };
-    </script>
-    <script id="MathJax-script" defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.0/es5/tex-mml-chtml.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #f0f8ff;
-        color: #333;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        transition: background-color 0.3s, color 0.3s;
-      }
-      body.dark { background-color: #1a2332; color: #e1ecf7; }
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evaluador de la respuesta extendida del GED · Groq</title>
+<meta name="description" content="Instrumento de evaluación de la respuesta extendida del GED (Razonamiento a través de las artes del lenguaje) según la rúbrica oficial de tres rasgos.">
+<meta name="author" content="José M. Fernández, Harry S. Truman College — City Colleges of Chicago">
+<meta name="license" content="CC BY-NC-SA 4.0">
+<link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%230f5c63'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='34' fill='%23ffffff' text-anchor='middle'%3ERE%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --acento:#0f5c63;
+    --acento-oscuro:#0a4249;
+    --acento-tenue:#e2f0f1;
+    --tinta:#16283a;
+    --papel:#ffffff;
+    --fondo:#eceff3;
+    --borde:#c9d3dc;
+    --borde-suave:#e2e8ee;
+    --texto:#1b2a36;
+    --texto-sec:#4a5b68;
+    --n0:#a4262c;
+    --n1:#5C3900;
+    --n2:#1c6b3f;
+    --n0-fondo:#fbeceb;
+    --n1-fondo:#fbf3e2;
+    --n2-fondo:#e8f4ec;
+    --sombra:0 1px 2px rgba(22,40,58,.08), 0 4px 14px rgba(22,40,58,.06);
+    --radio:10px;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",monospace;
+    --escala:1;
+  }
+  body.oscuro{
+    --papel:#16202b;
+    --fondo:#0e161e;
+    --borde:#31414f;
+    --borde-suave:#26333f;
+    --texto:#e6edf3;
+    --texto-sec:#adbcc8;
+    --tinta:#0b1219;
+    --acento-tenue:#25303a;
+    --n0:#ff9a94;
+    --n1:#f0c46a;
+    --n2:#79d4a0;
+    --n0-fondo:#2c1a1c;
+    --n1-fondo:#2c2416;
+    --n2-fondo:#162b21;
+    --sombra:0 1px 2px rgba(0,0,0,.4);
+  }
+  body.contraste{
+    --papel:#ffffff;--fondo:#ffffff;--borde:#000000;--borde-suave:#000000;
+    --texto:#000000;--texto-sec:#000000;--acento:#000000;--acento-oscuro:#000000;
+    --acento-tenue:#ffffff;--sombra:none;
+  }
+  body.contraste .tarjeta,body.contraste .campo,body.contraste textarea,
+  body.contraste input,body.contraste select{border-width:2px!important}
 
-      h1 {
-        background-color: #4a90e2;
-        color: white;
-        width: 100%;
-        text-align: center;
-        padding: 20px 0;
-        margin: 0;
-        text-shadow: 2px 2px #357abd;
-      }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--fondo);color:var(--texto);
+    font-family:var(--sans);
+    font-size:calc(16px * var(--escala));
+    line-height:1.6;
+  }
+  .lienzo{max-width:1180px;margin:0 auto;padding:0 16px 64px}
 
-      .header-container {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        position: relative;
-      }
+  /* ── Encabezado ── */
+  .cabecera{background:var(--tinta);color:#ffffff;border-bottom:4px solid var(--acento)}
+  .cabecera-int{max-width:1180px;margin:0 auto;padding:20px 16px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between}
+  .marca{display:flex;gap:14px;align-items:flex-start;min-width:0}
+  .escudo{flex:none;width:46px;height:46px;border-radius:8px;background:var(--acento);
+    display:flex;align-items:center;justify-content:center;font-family:var(--serif);
+    font-size:1.15rem;color:#ffffff;letter-spacing:.5px}
+  .cabecera h1{font-family:var(--serif);font-size:1.5rem;line-height:1.25;margin:0 0 4px;font-weight:600;color:#ffffff}
+  .cabecera p{margin:0;color:#c6d3de;font-size:.86rem;max-width:56ch}
+  .herramientas{display:flex;flex-wrap:wrap;gap:8px}
+  .btn-icono{background:rgba(255,255,255,.10);color:#ffffff;border:1px solid rgba(255,255,255,.28);
+    border-radius:8px;padding:7px 12px;font-size:.82rem;font-family:inherit;cursor:pointer;line-height:1.3}
+  .btn-icono:hover{background:rgba(255,255,255,.22)}
+  .btn-icono[aria-pressed="true"]{background:#ffffff;color:var(--tinta);border-color:#ffffff;font-weight:600}
+  /* El acceso a la guía se distingue del resto de la barra sin
+     competir con ella: fondo teñido del color de acento y una marca
+     de interrogación. El halo del primer uso se retira solo. */
+  .btn-guia{background:rgba(126,206,213,.16);border-color:#7eced5;font-weight:600}
+  .btn-guia:hover{background:rgba(126,206,213,.30)}
+  .btn-guia .interrogante{display:inline-flex;align-items:center;justify-content:center;
+    width:17px;height:17px;border-radius:50%;background:#7eced5;color:#0a3237;
+    font-size:.72rem;font-weight:700;margin-right:7px;vertical-align:-2px}
+  .btn-guia.destacado{box-shadow:0 0 0 3px rgba(126,206,213,.26);
+    animation:latido-guia 2.6s ease-out 3}
+  @keyframes latido-guia{
+    0%{box-shadow:0 0 0 0 rgba(126,206,213,.55)}
+    70%{box-shadow:0 0 0 11px rgba(126,206,213,0)}
+    100%{box-shadow:0 0 0 3px rgba(126,206,213,.26)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .btn-guia.destacado{animation:none;box-shadow:0 0 0 3px rgba(126,206,213,.40)}
+  }
 
-      .help-btn {
-        position: absolute;
-        right: 20px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: rgb(124, 24, 128);
-        color: white;
-        border: none;
-        font-size: 22px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.3s;
-      }
-      .help-btn:hover {
-        background-color: rgba(255, 255, 255, 0.3);
-        transform: translateY(-50%) scale(1.1);
-      }
 
-      .help-modal {
-        display: none;
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background-color: rgba(0,0,0,0.5);
-        z-index: 1000;
-        justify-content: center;
-        align-items: center;
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
-      .help-modal.active { display: flex; opacity: 1; }
+  /* ── Barra de estado del motor ── */
+  .barra-motor{background:var(--papel);border-bottom:1px solid var(--borde)}
+  .barra-motor-int{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;flex-wrap:wrap;
+    gap:10px 18px;align-items:center;font-size:.85rem}
+  .distintivo{display:inline-flex;align-items:center;gap:7px;background:var(--acento-tenue);
+    color:var(--acento-oscuro);border:1px solid var(--acento);border-radius:999px;
+    padding:3px 12px;font-weight:600;font-size:.8rem}
+  body.oscuro .distintivo{color:#ffffff}
+  .punto{width:8px;height:8px;border-radius:50%;background:var(--n1);flex:none}
+  .punto.activo{background:var(--n2)}
+  .punto.fallo{background:var(--n0)}
+  .motor-txt{color:var(--texto-sec)}
+  .motor-txt strong{color:var(--texto);font-family:var(--mono);font-size:.82rem}
 
-      .help-content {
-        width: 90%;
-        max-width: 700px;
-        background-color: #fff;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        position: relative;
-        max-height: 85vh;
-        overflow-y: auto;
-        border-top: 5px solid #4a90e2;
-      }
-      body.dark .help-content { background-color: #2a3847; color: #e1ecf7; }
+  /* ── Estructura ── */
+  .rejilla{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
+  @media (max-width:900px){.rejilla{grid-template-columns:1fr}}
+  .tarjeta{background:var(--papel);border:1px solid var(--borde);border-radius:var(--radio);
+    box-shadow:var(--sombra);padding:18px;margin-bottom:18px}
+  .tarjeta > h2{font-family:var(--serif);font-size:1.12rem;margin:0 0 4px;font-weight:600;color:var(--texto)}
+  .tarjeta > .pie-titulo{margin:0 0 14px;color:var(--texto-sec);font-size:.85rem}
 
-      .close-help {
-        position: absolute;
-        top: 10px; right: 10px;
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: #666;
-      }
-      body.dark .close-help { color: #e1ecf7; }
-      .close-help:hover { color: #4a90e2; }
+  .etiqueta{display:block;font-weight:600;font-size:.87rem;margin:0 0 5px;color:var(--texto);cursor:pointer}
+  .ayuda{display:block;font-size:.8rem;color:var(--texto-sec);margin:-2px 0 7px}
+  textarea,input[type="text"],input[type="password"],select{
+    width:100%;font-family:inherit;font-size:.95rem;color:var(--texto);background:var(--papel);
+    border:1px solid var(--borde);border-radius:8px;padding:10px 12px;line-height:1.55}
+  textarea{resize:vertical;min-height:96px}
+  #ensayo{min-height:340px;font-size:1rem;line-height:1.75}
+  select{cursor:pointer}
+  :focus-visible{outline:3px solid var(--acento);outline-offset:2px}
+  body.oscuro :focus-visible{outline-color:#ffffff}
 
-      #chatbox {
-        width: 90%;
-        max-width: 900px;
-        height: 450px;
-        border: 1px solid #c5d9f0;
-        overflow-y: auto;
-        padding: 15px;
-        margin-top: 20px;
-        background: #fff;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        transition: background-color 0.3s;
-        border-radius: 8px;
-      }
-      body.dark #chatbox { background-color: #2a3847; color: #e1ecf7; border-color: #3a4d63; }
+  .campo{margin-bottom:14px}
+  .fila{display:flex;flex-wrap:wrap;gap:10px}
+  .fila > *{flex:1 1 180px;min-width:0}
 
-      .message { display: flex; align-items: start; gap: 10px; flex-wrap: wrap; position: relative; }
-      .emoji-avatar { font-size: 40px; min-width: 40px; text-align: center; }
+  /* ── Medidor de extensión ── */
+  .medidor{margin-top:12px;border:1px solid var(--borde-suave);border-radius:8px;padding:11px 13px;background:var(--fondo)}
+  .medidor-cifras{display:flex;flex-wrap:wrap;gap:6px 20px;font-size:.84rem;color:var(--texto-sec)}
+  .medidor-cifras b{font-family:var(--mono);font-size:1.02rem;color:var(--texto);font-weight:600}
+  .pista{position:relative;height:9px;background:var(--borde-suave);border-radius:5px;margin-top:10px;overflow:hidden}
+  .pista span{position:absolute;inset:0 auto 0 0;width:0;background:var(--n1);transition:width .3s ease}
+  .pista span.bien{background:var(--n2)}
+  .pista span.exceso{background:var(--n1)}
+  .zona{position:absolute;top:0;bottom:0;border-left:2px dashed var(--texto-sec);opacity:.45}
+  .nota-medidor{font-size:.8rem;margin:8px 0 0;color:var(--texto-sec)}
 
-      .text-bubble {
-        background-color: #e8f0fe;
-        padding: 10px 15px;
-        border-radius: 15px;
-        max-width: 90%;
-        word-wrap: break-word;
-        position: relative;
-        padding-right: 40px;
-      }
-      body.dark .text-bubble { background-color: #3a4d63; }
+  /* ── Botones ── */
+  .btn{font-family:inherit;font-size:1rem;font-weight:600;border-radius:8px;padding:13px 22px;
+    border:1px solid transparent;cursor:pointer;line-height:1.3}
+  .btn-principal{background:var(--acento);color:#ffffff;width:100%}
+  .btn-principal:hover:not(:disabled){background:var(--acento-oscuro)}
+  .btn-principal:disabled{opacity:1;background:var(--texto-sec);cursor:not-allowed}
+  body.contraste .btn-principal{background:#000000;color:#ffffff;border-color:#000000}
+  .btn-sec{background:var(--papel);color:var(--texto);border-color:var(--borde);font-size:.86rem;padding:9px 14px;font-weight:500}
+  .btn-sec:hover{background:var(--fondo)}
+  .grupo-botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 
-      .user .text-bubble { background-color: #dbe9ff; margin-left: auto; border-radius: 15px 5px 15px 15px; }
-      .bot .text-bubble { border-radius: 5px 15px 15px 15px; }
+  /* ── Avisos ── */
+  .aviso{border-left:5px solid var(--n1);background:var(--n1-fondo);color:var(--texto);
+    padding:12px 14px;border-radius:6px;font-size:.88rem;margin:14px 0}
+  .aviso.error{border-left-color:var(--n0);background:var(--n0-fondo)}
+  .aviso.exito{border-left-color:var(--n2);background:var(--n2-fondo)}
+  .aviso strong{display:block;margin-bottom:3px}
+  .aviso ul{margin:6px 0 0;padding-left:20px}
 
-      .evaluation-container {
-        margin-top: 15px;
-        padding: 15px;
-        background-color: #f5f9ff;
-        border-radius: 8px;
-        border: 1px solid #d1e4ff;
-      }
-      body.dark .evaluation-container { background-color: #1e2938; border-color: #3a4d63; }
+  /* ── Cargando ── */
+  .cargando{display:none;text-align:center;padding:34px 18px}
+  .cargando.visible{display:block}
+  .rueda{width:38px;height:38px;margin:0 auto 14px;border:4px solid var(--borde);
+    border-top-color:var(--acento);border-radius:50%;animation:giro 1s linear infinite}
+  @keyframes giro{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){
+    .rueda{animation:none;border-top-color:var(--acento);border-style:dashed}
+    *{transition:none!important}
+  }
 
-      .trait-evaluation {
-        margin: 10px 0;
-        padding: 10px;
-        background-color: white;
-        border-radius: 5px;
-        border-left: 4px solid #4a90e2;
-      }
-      body.dark .trait-evaluation { background-color: #2a3847; border-left-color: #6aa6f8; }
+  /* ── Informe ── */
+  #informe{display:none;margin-top:22px}
+  #informe.visible{display:block}
+  .informe-cabecera{background:var(--papel);border:1px solid var(--borde);border-radius:var(--radio);
+    box-shadow:var(--sombra);padding:22px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+  .sello{flex:none;text-align:center}
+  .sello svg{display:block;margin:0 auto}
+  .sello-cifra{font-family:var(--serif);font-size:2.6rem;font-weight:600;line-height:1;fill:var(--texto)}
+  .sello-de{font-family:var(--sans);font-size:.72rem;fill:var(--texto-sec)}
+  .sello-pie{font-size:.78rem;color:var(--texto-sec);margin-top:8px}
+  .sello-pie b{font-family:var(--mono);color:var(--texto)}
+  .veredicto{flex:1 1 320px;min-width:0}
+  .veredicto h2{font-family:var(--serif);font-size:1.25rem;margin:0 0 8px;font-weight:600}
+  .veredicto p{margin:0;color:var(--texto-sec);font-size:.94rem}
 
-      .trait-title { font-weight: bold; color: #357abd; margin-bottom: 5px; font-size: 16px; }
-      body.dark .trait-title { color: #6aa6f8; }
+  /* ── Rasgo ── */
+  .rasgo{background:var(--papel);border:1px solid var(--borde);border-radius:var(--radio);
+    box-shadow:var(--sombra);padding:18px;margin-top:16px}
+  .rasgo > h3{font-family:var(--serif);font-size:1.05rem;font-weight:600;margin:0 0 6px}
+  .rasgo-cabecera{display:flex;gap:14px;align-items:flex-start}
+  .rasgo-num{flex:none;width:38px;height:38px;border-radius:50%;background:var(--acento-tenue);
+    border:1px solid var(--acento);color:var(--acento-oscuro);font-family:var(--serif);
+    font-size:1.15rem;font-weight:600;display:flex;align-items:center;justify-content:center}
+  body.oscuro .rasgo-num{color:#ffffff}
+  .rasgo-cabecera h3{margin:0;font-size:1.02rem;font-family:var(--serif);font-weight:600}
+  .rasgo-cabecera .sub{margin:2px 0 0;font-size:.8rem;color:var(--texto-sec)}
 
-      .score-badge {
-        display: inline-block;
-        padding: 3px 10px;
-        border-radius: 15px;
-        font-weight: bold;
-        margin-left: 10px;
-        font-size: 14px;
-      }
-      .score-0 { background-color: #ff4444; color: white; }
-      .score-1 { background-color: #ff9944; color: white; }
-      .score-2 { background-color: #44bb66; color: white; }
+  /* Elemento distintivo: la regleta de la rúbrica */
+  .regleta{margin:16px 0 0}
+  .regleta-pista{position:relative;display:grid;grid-template-columns:repeat(3,1fr);
+    border:1px solid var(--borde);border-radius:8px;overflow:hidden}
+  .regleta-nivel{padding:9px 6px;text-align:center;font-family:var(--mono);font-size:.95rem;
+    font-weight:600;color:var(--texto-sec);background:var(--fondo);border-right:1px solid var(--borde)}
+  .regleta-nivel:last-child{border-right:none}
+  .regleta-nivel.marcado{color:#ffffff}
+  .regleta-nivel.marcado.n0{background:var(--n0)}
+  .regleta-nivel.marcado.n1{background:var(--n1)}
+  .regleta-nivel.marcado.n2{background:var(--n2)}
+  body.oscuro .regleta-nivel.marcado{color:#16202b}
+  .regleta-desc{margin:9px 0 0;font-size:.88rem;padding:10px 12px;border-radius:6px;border-left:4px solid}
+  .regleta-desc.n0{background:var(--n0-fondo);border-left-color:var(--n0)}
+  .regleta-desc.n1{background:var(--n1-fondo);border-left-color:var(--n1)}
+  .regleta-desc.n2{background:var(--n2-fondo);border-left-color:var(--n2)}
+  .regleta-desc b{display:block;margin-bottom:2px}
 
-      .total-score {
-        font-size: 18px;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 15px;
-        padding: 10px;
-        background-color: #4a90e2;
-        color: white;
-        border-radius: 5px;
-      }
+  .bloque{margin-top:16px}
+  .bloque h4{margin:0 0 7px;font-size:.83rem;text-transform:uppercase;letter-spacing:.06em;color:var(--texto-sec);font-weight:700}
+  .indicadores{list-style:none;margin:0;padding:0}
+  .indicadores li{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:6px;
+    margin-bottom:6px;font-size:.89rem;border-left:4px solid}
+  .indicadores li.logrado{background:var(--n2-fondo);border-left-color:var(--n2)}
+  .indicadores li.parcial{background:var(--n1-fondo);border-left-color:var(--n1)}
+  .indicadores li.ausente{background:var(--n0-fondo);border-left-color:var(--n0)}
+  .marca-est{flex:none;font-family:var(--mono);font-weight:700;font-size:.78rem;padding:1px 7px;
+    border-radius:4px;color:#ffffff;margin-top:2px}
+  .marca-est.logrado{background:var(--n2)}
+  .marca-est.parcial{background:var(--n1)}
+  .marca-est.ausente{background:var(--n0)}
+  body.oscuro .marca-est{color:#16202b}
+  .indicadores .crit{font-weight:600;display:block}
+  .indicadores .com{color:var(--texto-sec)}
 
-      .warning-box {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-        padding: 10px;
-        border-radius: 5px;
-        margin: 10px 0;
-      }
-      body.dark .warning-box { background-color: #3d2914; border-color: #6c5400; color: #ffc107; }
+  .lista-simple{margin:0;padding-left:20px;font-size:.9rem}
+  .lista-simple li{margin-bottom:5px}
+  .cita{font-family:var(--serif);font-style:italic;border-left:3px solid var(--borde);padding-left:12px;margin:0 0 8px;font-size:.9rem}
 
-      .error-box {
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-        padding: 10px;
-        border-radius: 5px;
-        margin: 10px 0;
-      }
-      body.dark .error-box { background-color: #2d1b1e; border-color: #842029; color: #f8d7da; }
+  .prioridad{border:1px solid var(--borde);border-left:5px solid var(--acento);border-radius:8px;padding:13px 15px;margin-bottom:11px}
+  .prioridad h4{margin:0 0 5px;font-size:.98rem;font-family:var(--serif);text-transform:none;letter-spacing:0;color:var(--texto)}
+  .prioridad p{margin:0 0 6px;font-size:.89rem}
+  .prioridad .modelo-txt{background:var(--fondo);border-radius:6px;padding:9px 11px;font-size:.88rem;font-family:var(--serif)}
 
-      /* ── Lista de subdimensiones ── */
-      .subdim-list {
-        list-style: none;
-        padding: 0;
-        margin: 8px 0 8px 0;
-      }
-      .subdim-list li {
-        padding: 5px 8px;
-        border-radius: 4px;
-        margin-bottom: 4px;
-        font-size: 14px;
-        line-height: 1.4;
-        border-left: 3px solid transparent;
-      }
-      .subdim-list li.ok {
-        background-color: #f0fff4;
-        border-left-color: #44bb66;
-      }
-      .subdim-list li.fail {
-        background-color: #fff5f5;
-        border-left-color: #ff4444;
-      }
-      .subdim-list li.partial {
-        background-color: #fffaf0;
-        border-left-color: #ff9944;
-      }
-      body.dark .subdim-list li.ok     { background-color: #1a2e1e; }
-      body.dark .subdim-list li.fail   { background-color: #2e1a1a; }
-      body.dark .subdim-list li.partial{ background-color: #2e2514; }
-      /* ── fin subdim-list ── */
+  /* ── Tablas ── */
+  table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:8px}
+  caption{text-align:left;font-size:.83rem;color:var(--texto-sec);margin-bottom:6px}
+  th,td{border:1px solid var(--borde);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:var(--fondo);font-weight:600}
 
-      .copy-btn {
-        position: absolute;
-        top: 8px; right: 8px;
-        background: #4a90e2;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        width: 32px; height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        z-index: 10;
-      }
-      .copy-btn:hover { background: #357abd; transform: scale(1.1); }
-      .copy-btn i { font-size: 16px; }
+  details{border:1px solid var(--borde-suave);border-radius:8px;padding:0;margin-bottom:10px;background:var(--papel)}
+  summary{cursor:pointer;padding:11px 13px;font-weight:600;font-size:.9rem;border-radius:8px;list-style-position:inside}
+  summary:hover{background:var(--fondo)}
+  .det-cuerpo{padding:0 13px 13px}
 
-      .tooltip {
-        position: absolute;
-        background-color: #357abd;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 12px;
-        top: -30px; right: 0;
-        opacity: 0;
-        transition: opacity 0.3s;
-        pointer-events: none;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      }
-      .tooltip.show { opacity: 1; }
+  /* ── Cronómetro ── */
+  .reloj{font-family:var(--mono);font-size:2.3rem;font-weight:600;text-align:center;margin:4px 0 2px;letter-spacing:.02em}
+  .reloj.alerta{color:var(--n0)}
+  .reloj-pie{text-align:center;font-size:.8rem;color:var(--texto-sec);margin:0 0 12px}
 
-      #text-form {
-        display: flex;
-        flex-direction: column;
-        width: 90%;
-        max-width: 900px;
-        margin-top: 20px;
-      }
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
-      textarea {
-        padding: 15px;
-        font-size: 16px;
-        border: 1px solid #c5d9f0;
-        border-radius: 8px;
-        min-height: 200px;
-        resize: vertical;
-        margin-bottom: 15px;
-        font-family: Arial, sans-serif;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      }
-      body.dark textarea { background-color: #2a3847; color: #e1ecf7; border-color: #3a4d63; }
+  footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--borde);
+    font-size:.8rem;color:var(--texto-sec);text-align:center}
+  footer a{color:var(--acento-oscuro)}
+  body.oscuro footer a{color:#9fc9e8}
 
-      button {
-        padding: 14px 20px;
-        font-size: 18px;
-        border: none;
-        background-color: #4a90e2;
-        color: white;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: bold;
-        transition: background-color 0.3s;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      }
-      button:hover { background-color: #357abd; transform: scale(1.02); }
+  /* ── Guía de puesta en marcha ── */
+  .velo{position:fixed;inset:0;background:rgba(11,18,25,.62);z-index:60;
+    display:none;align-items:flex-start;justify-content:center;padding:22px 14px;overflow-y:auto}
+  .velo.abierto{display:flex}
+  .panel-guia{background:var(--papel);color:var(--texto);border:1px solid var(--borde);
+    border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.35);max-width:760px;width:100%;
+    padding:0 0 22px;position:relative}
+  .guia-cab{position:sticky;top:0;background:var(--tinta);color:#ffffff;
+    border-radius:11px 11px 0 0;padding:16px 20px;display:flex;gap:14px;
+    align-items:flex-start;justify-content:space-between;border-bottom:3px solid var(--acento)}
+  .guia-cab h2{font-family:var(--serif);font-size:1.16rem;margin:0;font-weight:600;color:#ffffff}
+  .guia-cab p{margin:3px 0 0;font-size:.8rem;color:#c6d3de}
+  .cerrar{flex:none;background:rgba(255,255,255,.12);color:#ffffff;border:1px solid rgba(255,255,255,.3);
+    border-radius:8px;font-size:.82rem;font-family:inherit;padding:7px 12px;cursor:pointer}
+  .cerrar:hover{background:rgba(255,255,255,.26)}
+  .guia-cuerpo{padding:20px}
+  .guia-cuerpo > p{margin:0 0 14px}
+  .paso-guia{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--borde-suave)}
+  .paso-guia .num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--acento);
+    color:#ffffff;font-family:var(--serif);font-size:1.02rem;font-weight:600;
+    display:flex;align-items:center;justify-content:center}
+  .paso-guia h3{margin:2px 0 5px;font-size:1rem;font-family:var(--serif);font-weight:600}
+  .paso-guia p,.paso-guia ol,.paso-guia ul{margin:0 0 8px;font-size:.91rem}
+  .paso-guia > div:last-child > *:last-child{margin-bottom:0}
+  .paso-guia ol,.paso-guia ul{padding-left:20px}
+  .paso-guia li{margin-bottom:4px}
+  .guia-cuerpo h3.apartado{font-family:var(--serif);font-size:1.05rem;margin:22px 0 8px;font-weight:600}
+  .clave-ej{font-family:var(--mono);font-size:.9em;background:var(--acento-tenue);
+    color:var(--acento-oscuro);padding:2px 6px;border-radius:4px}
+  body.oscuro .clave-ej{color:#ffffff}
 
-      .toggle-btn {
-        margin-top: 20px;
-        margin-bottom: 30px;
-        padding: 8px 16px;
-        background-color: #357abd;
-        font-size: 16px;
-      }
+  @media print{
+    body{background:#ffffff;font-size:11pt}
+    .velo{display:none!important}
+    .cabecera,.barra-motor,#columna-entrada,#columna-lateral,.no-imprimir,.cargando{display:none!important}
+    .rejilla{display:block}
+    #informe{display:block!important;margin:0}
+    .tarjeta,.rasgo,.informe-cabecera{box-shadow:none;border:1px solid #999;break-inside:avoid}
+    .lienzo{padding:0}
+  }
+</style>
+</head>
+<body>
 
-      .loading-indicator {
-        margin: 15px 0;
-        text-align: center;
-        color: #4a90e2;
-        display: none;
-        font-size: 18px;
-        font-weight: bold;
-      }
-
-      @media (max-width: 768px) {
-        .help-btn { width: 36px; height: 36px; font-size: 18px; right: 15px; }
-        textarea { min-height: 180px; }
-      }
-      @media (max-width: 480px) {
-        h1 { font-size: 20px; padding: 15px 0; }
-        .help-btn { width: 32px; height: 32px; font-size: 16px; right: 10px; }
-        textarea { min-height: 150px; font-size: 14px; }
-        button { padding: 12px 15px; font-size: 16px; }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="header-container">
-      <h1>
-        Evaluador de la Respuesta Extendida del GED (Rúbrica Oficial)
-        <br />
-        <span style="font-size: 16px; font-weight: normal">Creada por José M. Fernández con Gemini Pro 2.5 y Claude Sonnet 4</span>
-      </h1>
-      <button class="help-btn" onclick="toggleHelp()">
-        <i class="fas fa-question"></i>
-      </button>
+<header class="cabecera">
+  <div class="cabecera-int">
+    <div class="marca">
+      <div class="escudo" aria-hidden="true">RE</div>
+      <div>
+        <h1>Evaluador de la respuesta extendida del GED</h1>
+        <p>Razonamiento a través de las artes del lenguaje · rúbrica oficial de tres rasgos, 0 a 6 puntos</p>
+      </div>
     </div>
+    <div class="herramientas no-imprimir">
+      <button type="button" class="btn-icono" id="btn-tema" aria-pressed="false">Modo oscuro</button>
+      <button type="button" class="btn-icono" id="btn-contraste" aria-pressed="false">Alto contraste</button>
+      <button type="button" class="btn-icono" id="btn-texto">Texto: normal</button>
+      <button type="button" class="btn-icono btn-guia destacado" id="btn-abre-guia" data-abre-guia aria-expanded="false" aria-controls="velo-guia"><span class="interrogante" aria-hidden="true">?</span>Guía de uso</button>
+      <button type="button" class="btn-icono" id="btn-config" aria-expanded="false" aria-controls="panel-config">Configuración</button>
+    </div>
+  </div>
+</header>
 
-    <!-- Modal de Ayuda -->
-    <div class="help-modal" id="helpModal">
-      <div class="help-content">
-        <button class="close-help" onclick="toggleHelp()">
-          <i class="fas fa-times"></i>
-        </button>
-        <h3>Evaluador GED con la Rúbrica Oficial</h3>
-        <p><strong>Esta herramienta implementa la rúbrica oficial del GED Testing Service</strong></p>
-        <p>
-          <strong style="color: #ff6b35">Esta herramienta aplica los criterios oficiales de manera estricta y realista.</strong>
-          <br />
-          No obstante, al no ser la herramienta verdadera del examen, puede no corresponderse con el resultado del examen oficial.
-        </p>
-        <h4>Sistema de Evaluación Oficial</h4>
-        <h5>🎯 Característica 1: Argumentación y Uso de Evidencia (12 subdimensiones)</h5>
-        <ul style="padding-left: 20px; margin: 10px 0">
-          <li><strong>Requisito obligatorio:</strong> Debe citar evidencia específica de AMBOS textos fuente</li>
-          <li>Generar un argumento claro basado en los textos</li>
-          <li>Analizar cuál posición está mejor sustentada</li>
-          <li>Distinguir entre afirmaciones fundamentadas y no fundamentadas</li>
-        </ul>
-        <h5>📊 Característica 2: Desarrollo de Ideas y Estructura (15 subdimensiones)</h5>
-        <ul style="padding-left: 20px; margin: 10px 0">
-          <li>Ideas bien desarrolladas y lógicas</li>
-          <li>Progresión clara de ideas</li>
-          <li>Estructura organizacional efectiva</li>
-          <li>Uso apropiado de transiciones</li>
-          <li>Estilo formal y tono académico</li>
-        </ul>
-        <h5>✏️ Característica 3: Claridad y Dominio del Español (14 subdimensiones)</h5>
-        <ul style="padding-left: 20px; margin: 10px 0">
-          <li>Estructura correcta de oraciones</li>
-          <li>Aplicación de convenciones gramaticales</li>
-          <li>Puntuación y mayúsculas apropiadas</li>
-          <li>Legibilidad general</li>
-        </ul>
-        <h4>Requisitos Mínimos (CRÍTICOS)</h4>
-        <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin: 10px 0">
-          <ul style="padding-left: 20px; margin: 5px 0">
-            <li><strong>Longitud:</strong> 300-500 palabras (menos de 300 = penalización severa)</li>
-            <li><strong>Estructura:</strong> 4-7 párrafos organizados</li>
-            <li><strong>Evidencia textual:</strong> Citas específicas de AMBOS textos</li>
-            <li><strong>Análisis comparativo:</strong> Determinar cuál argumento está mejor sustentado</li>
-          </ul>
-        </div>
-        <h4>Sistema de Puntuación Oficial</h4>
-        <p>Cada característica se evalúa usando subdimensiones con puntuación 0-2:</p>
-        <ul style="padding-left: 20px; margin: 10px 0">
-          <li><strong>0 puntos:</strong> No demuestra la habilidad</li>
-          <li><strong>1 punto:</strong> Nivel mínimo/inadecuado</li>
-          <li><strong>2 puntos:</strong> Nivel adecuado/efectivo</li>
-        </ul>
-        <p><strong>Fórmula:</strong> (Suma de puntos) ÷ (Número de subdimensiones) = Puntuación de característica</p>
-        <p>Puntuación máxima total: 6 puntos (2+2+2)</p>
+<div class="barra-motor no-imprimir">
+  <div class="barra-motor-int">
+    <span class="distintivo"><span class="punto" id="punto-estado"></span>Groq · modelos abiertos</span>
+    <span class="motor-txt" id="motor-txt">Sin configurar. Abre <strong>Configuración</strong> para introducir tu clave.</span>
+  </div>
+</div>
+
+<main class="lienzo">
+
+  <!-- ══ Configuración ══ -->
+  <section class="tarjeta no-imprimir" id="panel-config" hidden>
+    <h2>Configuración del motor</h2>
+    <p class="pie-titulo">La clave se guarda únicamente en este navegador (almacenamiento local). No se envía a ningún servidor propio ni queda escrita dentro del archivo.</p>
+
+    <div class="campo">
+      <span class="etiqueta" id="lbl-clave">Clave de la interfaz de programación (API key)</span>
+      <span class="ayuda">Crea una cuenta gratuita en console.groq.com y genera tu propia clave; empieza por «gsk_». Cada persona debe usar su clave: no las compartan entre sí, porque el límite de uso gratuito es por cuenta.</span>
+      <div class="fila">
+        <input type="password" id="clave" aria-labelledby="lbl-clave" autocomplete="off" spellcheck="false" placeholder="gsk_…">
+        <button type="button" class="btn btn-sec" id="btn-ver-clave" style="flex:0 0 auto">Mostrar</button>
+        <button type="button" class="btn btn-sec" id="btn-guardar-clave" style="flex:0 0 auto">Guardar y detectar modelos</button>
       </div>
     </div>
 
-    <div id="chatbox"></div>
-    <div id="loading" class="loading-indicator">Aplicando rúbrica oficial del GED...</div>
+    <div class="campo">
+      <span class="etiqueta" id="lbl-modelo">Modelo</span>
+      <span class="ayuda">La lista se consulta en vivo al proveedor. Si dejas <strong>Selección automática</strong>, la herramienta elige siempre el mejor modelo disponible y se adapta sola cuando el proveedor retire o publique modelos.</span>
+      <div class="fila">
+        <select id="modelo" aria-labelledby="lbl-modelo">
+          <option value="auto">Selección automática (recomendado)</option>
+        </select>
+        <button type="button" class="btn btn-sec" id="btn-refrescar" style="flex:0 0 auto">Actualizar lista</button>
+      </div>
+    </div>
 
-    <form id="text-form">
-      <textarea
-        id="user-input"
-        placeholder="Pega aquí tu respuesta extendida para evaluación con la rúbrica oficial del GED. Esta herramienta aplica los criterios reales del examen y dará puntuaciones más realistas y estrictas."
-        autocomplete="off"
-        required></textarea>
-      <button type="submit">Evaluar con Rúbrica Oficial GED</button>
-    </form>
+    <div class="grupo-botones">
+      <button type="button" class="btn btn-sec" id="btn-borrar-clave">Borrar la clave de este navegador</button>
+    </div>
+    <p class="ayuda" style="margin-top:4px">¿Es la primera vez que la usa?
+      <button type="button" class="btn btn-sec" data-abre-guia aria-expanded="false" aria-controls="velo-guia" style="margin-left:6px">Abrir la guía de puesta en marcha</button>
+    </p>
+    <div id="aviso-config"></div>
+  </section>
 
-    <button class="toggle-btn" onclick="toggleTheme()">
-      <i class="fas fa-moon"></i> / <i class="fas fa-sun"></i> Cambiar tema
-    </button>
+  <div class="rejilla">
 
-    <script>
-      // ─── URL del backend en Render ───────────────────────────────────────────
-      const BACKEND_URL = "https://math-backend-zs9j.onrender.com/generate";
+    <!-- ══ Columna de entrada ══ -->
+    <div id="columna-entrada">
+      <section class="tarjeta">
+        <h2>Respuesta del estudiante</h2>
+        <p class="pie-titulo">Pega el texto completo del ensayo y pulsa el botón de evaluación.</p>
 
-      const cache = { responses: {} };
-      const chatbox       = document.getElementById('chatbox');
-      const form          = document.getElementById('text-form');
-      const userInput     = document.getElementById('user-input');
-      const loadingIndicator = document.getElementById('loading');
-      const helpModal     = document.getElementById('helpModal');
+        <span class="etiqueta" id="lbl-ensayo">Texto de la respuesta extendida</span>
+        <textarea id="ensayo" aria-labelledby="lbl-ensayo" aria-describedby="medidor-desc" spellcheck="true" placeholder="Escribe o pega aquí la respuesta extendida completa…"></textarea>
 
-      function getEmoji(type) { return type === 'user' ? '📝' : '🎓'; }
+        <div class="medidor">
+          <div class="medidor-cifras">
+            <span>Palabras <b id="c-palabras">0</b></span>
+            <span>Párrafos <b id="c-parrafos">0</b></span>
+            <span>Oraciones <b id="c-oraciones">0</b></span>
+            <span>Palabras por oración <b id="c-media">0</b></span>
+          </div>
+          <div class="pista" aria-hidden="true">
+            <span id="barra-ext"></span>
+            <i class="zona" style="left:50%"></i>
+            <i class="zona" style="left:83.3%"></i>
+          </div>
+          <p class="nota-medidor" id="medidor-desc" role="status">Extensión recomendada: de 300 a 500 palabras, en 4 a 7 párrafos.</p>
+        </div>
 
-      function toggleHelp() { helpModal.classList.toggle('active'); }
+        <div style="margin-top:16px">
+          <button type="button" class="btn btn-principal" id="btn-evaluar">Evaluar la respuesta</button>
+        </div>
+        <div class="grupo-botones no-imprimir">
+          <button type="button" class="btn btn-sec" id="btn-ejemplo">Cargar ejemplo de demostración</button>
+          <button type="button" class="btn btn-sec" id="btn-limpiar">Limpiar todo</button>
+          <button type="button" class="btn btn-sec" id="btn-cancelar" hidden>Cancelar la evaluación</button>
+        </div>
+        <div id="aviso-principal"></div>
+      </section>
+    </div>
 
-      function toggleTheme() {
-        document.body.classList.toggle('dark');
-        localStorage.setItem('darkMode', document.body.classList.contains('dark'));
-      }
+    <!-- ══ Columna lateral ══ -->
+    <div id="columna-lateral">
+      <section class="tarjeta">
+        <h2>Materiales de la tarea</h2>
+        <p class="pie-titulo">Opcionales, pero muy recomendables: sin los textos fuente no es posible verificar si las citas del estudiante son reales ni si pertenecen a ambos textos, que es el requisito central del rasgo&nbsp;1.</p>
 
-      helpModal.addEventListener('click', function(e) {
-        if (e.target === helpModal) toggleHelp();
+        <details>
+          <summary>Consigna de la tarea</summary>
+          <div class="det-cuerpo">
+            <span class="etiqueta" id="lbl-consigna">Texto de la consigna</span>
+            <textarea id="consigna" aria-labelledby="lbl-consigna" placeholder="Analice los argumentos presentados en los dos textos y explique cuál está mejor fundamentado…"></textarea>
+          </div>
+        </details>
+        <details>
+          <summary>Texto fuente A</summary>
+          <div class="det-cuerpo">
+            <span class="etiqueta" id="lbl-a">Contenido del texto A</span>
+            <textarea id="fuente-a" aria-labelledby="lbl-a" placeholder="Pega aquí el primer texto fuente…"></textarea>
+          </div>
+        </details>
+        <details>
+          <summary>Texto fuente B</summary>
+          <div class="det-cuerpo">
+            <span class="etiqueta" id="lbl-b">Contenido del texto B</span>
+            <textarea id="fuente-b" aria-labelledby="lbl-b" placeholder="Pega aquí el segundo texto fuente…"></textarea>
+          </div>
+        </details>
+
+        <div class="campo" style="margin-top:14px">
+          <span class="etiqueta" id="lbl-rigor">Nivel de exigencia</span>
+          <select id="rigor" aria-labelledby="lbl-rigor">
+            <option value="oficial" selected>Oficial: como puntuaría el examen</option>
+            <option value="formativo">Formativo: oficial, con más apoyo didáctico</option>
+          </select>
+          <span class="ayuda" style="margin-top:6px">Ambos modos aplican la misma rúbrica y otorgan la misma puntuación. El modo formativo amplía las explicaciones y los modelos de reescritura.</span>
+        </div>
+      </section>
+
+      <section class="tarjeta no-imprimir">
+        <h2>Cronómetro de práctica</h2>
+        <p class="pie-titulo">La tarea real concede 45 minutos.</p>
+        <p class="reloj" id="reloj" role="timer" aria-live="off">45:00</p>
+        <p class="reloj-pie" id="reloj-pie">Detenido</p>
+        <div class="fila">
+          <select id="duracion" aria-label="Duración del cronómetro">
+            <option value="45">45 minutos (tiempo estándar)</option>
+            <option value="67">67 minutos (tiempo y medio)</option>
+            <option value="90">90 minutos (tiempo doble)</option>
+          </select>
+        </div>
+        <div class="grupo-botones">
+          <button type="button" class="btn btn-sec" id="btn-reloj">Iniciar</button>
+          <button type="button" class="btn btn-sec" id="btn-reloj-reset">Reiniciar</button>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <h2>Rúbrica oficial de referencia</h2>
+        <p class="pie-titulo">Cada rasgo se puntúa de 0 a 2. El total de 0 a 6 se duplica y aporta hasta 12 puntos brutos a la sección de artes del lenguaje.</p>
+        <div id="tabla-rubrica"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ══ Cargando ══ -->
+  <div class="cargando" id="cargando" role="status" aria-live="polite">
+    <div class="rueda" aria-hidden="true"></div>
+    <p id="cargando-txt">Aplicando la rúbrica oficial…</p>
+  </div>
+
+  <!-- ══ Informe ══ -->
+  <section id="informe" tabindex="-1" aria-labelledby="informe-titulo">
+    <h2 class="sr-only" id="informe-titulo">Informe de evaluación</h2>
+    <div id="informe-cuerpo"></div>
+    <div class="grupo-botones no-imprimir" style="margin-top:16px">
+      <button type="button" class="btn btn-sec" id="btn-imprimir">Imprimir o guardar en PDF</button>
+      <button type="button" class="btn btn-sec" id="btn-descargar">Descargar el informe</button>
+      <button type="button" class="btn btn-sec" id="btn-copiar">Copiar el informe como texto</button>
+    </div>
+  </section>
+
+
+  <!-- ══ Guía de puesta en marcha ══ -->
+  <div class="velo no-imprimir" id="velo-guia" role="dialog" aria-modal="true" aria-labelledby="guia-titulo">
+    <div class="panel-guia">
+      <div class="guia-cab">
+        <div>
+          <h2 id="guia-titulo">Guía de puesta en marcha</h2>
+          <p>Configuración inicial: unos diez minutos, una sola vez.</p>
+        </div>
+        <button type="button" class="cerrar" data-cierra-guia>Cerrar</button>
+      </div>
+
+      <div class="guia-cuerpo">
+        <p>Esta herramienta califica una respuesta extendida del examen de Razonamiento a través de las artes del lenguaje aplicando la rúbrica oficial de tres rasgos, cada uno de 0 a 2 puntos. Funciona en el navegador, sin instalar nada. Solo hace falta una clave gratuita del proveedor Groq, que se obtiene una sola vez.</p>
+
+        <div class="paso-guia">
+          <div class="num" aria-hidden="true">1</div>
+          <div>
+            <h3>Cree su cuenta gratuita en Groq</h3>
+            <ol>
+              <li>Entre en <span class="clave-ej">console.groq.com</span>.</li>
+              <li>Regístrese con su correo electrónico o mediante una cuenta de Google o de GitHub.</li>
+              <li>Confirme el correo si el sistema se lo solicita.</li>
+            </ol>
+            <p>El nivel gratuito no exige tarjeta ni método de pago, y su límite diario basta de sobra para evaluar decenas de respuestas.</p>
+          </div>
+        </div>
+
+        <div class="paso-guia">
+          <div class="num" aria-hidden="true">2</div>
+          <div>
+            <h3>Genere su clave personal</h3>
+            <ol>
+              <li>En el menú lateral de la consola, abra el apartado de claves, rotulado <span class="clave-ej">API Keys</span>.</li>
+              <li>Cree una clave nueva y póngale un nombre reconocible, por ejemplo <span class="clave-ej">evaluador GED</span>.</li>
+              <li>Copie la clave de inmediato. Empieza por <span class="clave-ej">gsk_</span> y solo se muestra una vez: si cierra la ventana sin copiarla, tendrá que generar otra.</li>
+              <li>Guárdela en el gestor de contraseñas del navegador o en un documento privado.</li>
+            </ol>
+            <div class="aviso error" style="margin:8px 0 0">
+              <strong>Cada docente debe generar su propia clave</strong>
+              El límite de uso gratuito se cuenta por cuenta. Si varias personas comparten una misma clave, se agota enseguida y la herramienta deja de responder para todas. La clave no debe enviarse por correo, publicarse en un aula virtual ni escribirse dentro de este archivo.
+            </div>
+          </div>
+        </div>
+
+        <div class="paso-guia">
+          <div class="num" aria-hidden="true">3</div>
+          <div>
+            <h3>Guarde la clave en esta pantalla</h3>
+            <ol>
+              <li>Abra <strong>Configuración</strong>, en la barra superior.</li>
+              <li>Pegue su clave en el campo correspondiente.</li>
+              <li>Pulse <strong>Guardar y detectar modelos</strong>.</li>
+            </ol>
+            <p>Si todo es correcto, el indicador de la barra pasará a verde y mostrará el modelo en uso. La clave queda guardada en este navegador y no habrá que volver a introducirla. No se envía a ningún servidor ajeno al proveedor.</p>
+            <div class="aviso exito" style="margin:8px 0 0">
+              <strong>Deje marcada la selección automática</strong>
+              La herramienta consulta en vivo qué modelos ofrece el proveedor y elige el mejor disponible. Cuando se retire un modelo o se publique uno nuevo, se adapta sola: no hará falta descargar otra versión del archivo.
+            </div>
+          </div>
+        </div>
+
+        <div class="paso-guia">
+          <div class="num" aria-hidden="true">4</div>
+          <div>
+            <h3>Haga la primera prueba</h3>
+            <p>Pulse <strong>Cargar ejemplo de demostración</strong> y después <strong>Evaluar la respuesta</strong>. Se completan la consigna, los dos textos fuente y una respuesta de nivel intermedio.</p>
+            <p>Esa respuesta tiene un desequilibrio deliberado: analiza bien el primer texto, despacha el segundo en pocas líneas e introduce una opinión personal. Es un material útil para proyectar ante el grupo y discutir por qué el rasgo 1 no alcanza los dos puntos.</p>
+          </div>
+        </div>
+
+        <div class="paso-guia">
+          <div class="num" aria-hidden="true">5</div>
+          <div>
+            <h3>Trabaje con las respuestas de su estudiantado</h3>
+            <p>Pegue siempre, además del ensayo, <strong>la consigna y los dos textos fuente</strong>. Sin ellos no es posible comprobar si las citas existen realmente ni si proceden de ambos textos, que es el requisito central del primer rasgo.</p>
+            <ul>
+              <li><strong>Nivel de exigencia.</strong> El modo oficial redacta un informe breve; el formativo otorga la misma puntuación, pero amplía las explicaciones y los modelos de reescritura. Para retroalimentación individual conviene el formativo.</li>
+              <li><strong>Cronómetro.</strong> Reproduce los 45 minutos de la tarea real y ofrece tiempo y medio y tiempo doble para el estudiantado con acomodaciones.</li>
+              <li><strong>Informe.</strong> Se puede imprimir, guardar en PDF, descargar como archivo o copiar como texto.</li>
+              <li><strong>Presentación.</strong> Los botones superiores permiten modo oscuro, alto contraste y tres tamaños de letra, útiles al proyectar o para quienes tienen baja visión.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 class="apartado">Solución de problemas</h3>
+        <table>
+          <caption>Mensajes más frecuentes y qué hacer ante cada uno.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Lo que aparece en pantalla</th>
+              <th scope="col">Qué significa y cómo se resuelve</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">La clave no es válida o ha caducado</th>
+              <td>Se copió incompleta o se eliminó desde la consola. Genere una nueva y vuelva a guardarla.</td>
+            </tr>
+            <tr>
+              <th scope="row">Se alcanzó el límite de uso del proveedor</th>
+              <td>Es el tope del nivel gratuito. Espere unos minutos y reintente. Si ocurre a diario, compruebe que nadie más esté usando su clave.</td>
+            </tr>
+            <tr>
+              <th scope="row">No hubo conexión con el proveedor</th>
+              <td>Revise la conexión a internet. En algunas redes institucionales conviene consultar con el personal de tecnología si el acceso está filtrado.</td>
+            </tr>
+            <tr>
+              <th scope="row">El modelo indicado ya no está disponible</th>
+              <td>No requiere intervención: la herramienta lo descarta, vuelve a consultar la lista y reintenta con el siguiente.</td>
+            </tr>
+            <tr>
+              <th scope="row">El texto es demasiado breve para evaluarse</th>
+              <td>Por debajo de las 120 palabras no se consulta al proveedor: la rúbrica exige una muestra suficiente de escritura.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 class="apartado">Antes de usarla con estudiantes</h3>
+        <p>Conviene advertir al grupo desde el primer día que esta puntuación es una simulación docente. Reproduce la rúbrica publicada por el GED Testing Service, pero no procede de su sistema de calificación ni predice el resultado del examen.</p>
+
+        <div style="margin-top:18px;text-align:right">
+          <button type="button" class="btn btn-sec" data-cierra-guia>Cerrar la guía</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Evaluador de la respuesta extendida del GED · versión con la interfaz de programación gratuita de Groq<br>
+    José M. Fernández, ABE/ASE Math Master Teacher, Harry S. Truman College — City Colleges of Chicago</p>
+    <p>Obra bajo licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">Creative Commons Atribución-NoComercial-CompartirIgual 4.0 Internacional (CC BY-NC-SA 4.0)</a>.</p>
+    <p>Herramienta de práctica de carácter independiente. No está afiliada al GED Testing Service ni al American Council on Education, y su resultado no predice ni sustituye la calificación oficial del examen.</p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+
+/* ════════════════════════════════════════════════════════════════════
+   BLOQUE DE PROVEEDOR
+   Es la única sección que cambia entre la versión de Anthropic y la
+   de Groq. Todo lo demás es idéntico en ambos archivos.
+   ════════════════════════════════════════════════════════════════════ */
+
+const PROVEEDOR = {
+  id: "groq",
+  nombre: "Groq · modelos abiertos",
+
+  /* Lista interna de emergencia: solo se usa si no se puede consultar
+     la lista en vivo. La consulta en vivo siempre tiene prioridad. */
+  modelosRespaldo: ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "groq/compound"],
+
+  /* Modelos que no sirven para esta tarea: voz, transcripción,
+     clasificadores de seguridad e incrustaciones. */
+  descartar: /whisper|tts|orpheus|speech|audio|guard|embed|rerank|moderat|playai|distil/i,
+
+  /* Puntuación heurística. No contiene ninguna lista fija de modelos:
+     interpreta el tamaño y la familia a partir del identificador, de
+     modo que un modelo publicado mañana se ordena solo. */
+  puntuar(m) {
+    const id = String(m.id || "").toLowerCase();
+    let p = 100;
+
+    // Tamaño declarado en el identificador: 120b, 70b, 27b…
+    const tam = (id.match(/(\d+(?:\.\d+)?)\s*b(?![a-z0-9])/) || [])[1];
+    if (tam) p += Math.min(parseFloat(tam), 250);
+
+    const familias = [
+      [/minimax/, 80], [/gpt-oss/, 70], [/kimi/, 70], [/deepseek/, 65],
+      [/qwen/, 55], [/llama-?4/, 50], [/mistral|mixtral/, 30],
+      [/llama/, 25], [/compound/, 20], [/gemma/, 20]
+    ];
+    for (let i = 0; i < familias.length; i++) {
+      if (familias[i][0].test(id)) { p += familias[i][1]; break; }
+    }
+
+    if (/mini|instant|lite|nano|tiny|small|\b[1-9]b\b/.test(id)) p -= 45;
+    if (/safeguard|prompt-guard/.test(id)) p -= 500;
+    if (/preview/.test(id)) p -= 10;
+    p += Math.min((Number(m.context_window) || 0) / 20000, 10);
+    return p;
+  },
+
+  async listarModelos(clave) {
+    const r = await fetch("https://api.groq.com/openai/v1/models", {
+      method: "GET",
+      headers: { Authorization: "Bearer " + clave }
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error((j.error && j.error.message) || ("Error " + r.status));
+    return (j.data || [])
+      .filter((m) => m && m.id && m.active !== false && !PROVEEDOR.descartar.test(m.id))
+      .map((m) => ({
+        id: m.id,
+        nombre: m.id,
+        puntaje: PROVEEDOR.puntuar(m)
+      }))
+      .filter((m) => m.puntaje > 0);
+  },
+
+  async completar(op) {
+    async function enviar(extras) {
+      const cuerpo = Object.assign({
+        model: op.modelo,
+        messages: [
+          { role: "system", content: op.sistema },
+          { role: "user", content: op.consulta }
+        ],
+        temperature: 0.2,
+        max_completion_tokens: 12000
+      }, extras || {});
+      const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        signal: op.senal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + op.clave
+        },
+        body: JSON.stringify(cuerpo)
       });
-
-      function debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-          clearTimeout(timeout);
-          timeout = setTimeout(() => func(...args), wait);
-        };
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const e = new Error((j.error && j.error.message) || ("Error " + r.status));
+        e.estado = r.status;
+        throw e;
       }
-
-      const renderMathJax = debounce(function(elements) {
-        if (window.MathJax && window.MathJax.typeset) {
-          window.MathJax.typeset(elements);
-        }
-      }, 100);
-
-      function copyTextToClipboard(text) {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = text;
-        const plainText = tempDiv.textContent || tempDiv.innerText || '';
-        navigator.clipboard.writeText(plainText).catch(() => fallbackCopy(plainText));
+      const eleccion = (j.choices && j.choices[0]) || {};
+      if (eleccion.finish_reason === "length") {
+        throw new Error("La respuesta del modelo se cortó por longitud. Prueba con un modelo mayor o acorta los textos fuente.");
       }
+      return String((eleccion.message && eleccion.message.content) || "");
+    }
 
-      function fallbackCopy(text) {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
-        document.body.appendChild(ta);
-        ta.focus(); ta.select();
-        try { document.execCommand('copy'); } catch(e) {}
-        document.body.removeChild(ta);
+    // Parámetros opcionales que mejoran el resultado pero que no todos
+    // los modelos admiten. Si el proveedor los rechaza, se reintenta sin ellos.
+    const extras = { response_format: { type: "json_object" } };
+    if (/gpt-oss/i.test(op.modelo)) {
+      extras.reasoning_effort = "medium";
+      extras.reasoning_format = "hidden";
+    }
+    try {
+      return await enviar(extras);
+    } catch (e) {
+      const m = String(e.message || "");
+      if (e.estado === 400 && /response_format|reasoning|json|max_completion_tokens|unsupported|unrecognized/i.test(m)) {
+        return await enviar(null);
       }
+      throw e;
+    }
+  }
+};
 
-      function addMessage(text, className, emoji) {
-        const message = document.createElement('div');
-        message.className = `message ${className}`;
+/* ═══════════════════ FIN DEL BLOQUE DE PROVEEDOR ═══════════════════ */
 
-        const emojiSpan = document.createElement('span');
-        emojiSpan.className = 'emoji-avatar';
-        emojiSpan.textContent = emoji;
 
-        const bubble = document.createElement('div');
-        bubble.className = 'text-bubble tex2jax_process';
-        bubble.innerHTML = text;
+/* ════════════════════════════════════════════════════════════════════
+   1. RÚBRICA OFICIAL
+   Descriptores de los tres rasgos en sus tres niveles e indicadores
+   de diagnóstico derivados de las viñetas de la rúbrica oficial.
+   ════════════════════════════════════════════════════════════════════ */
+const RUBRICA = [
+  {
+    n: 1,
+    nombre: "Creación de argumentos y uso de evidencia",
+    foco: "Qué se argumenta y cómo se respalda con los textos",
+    niveles: [
+      "Apenas intenta crear un argumento o carece de propósito y de conexión con la consigna; cita evidencia mínima o nula de los textos fuente, o se limita a copiar fragmentos; el análisis de la validez de la argumentación es mínimo o inexistente.",
+      "Genera un argumento con alguna conexión con la consigna; cita alguna evidencia de los textos, con mezcla de material pertinente y no pertinente; el análisis y la evaluación de la argumentación son parciales, simplistas o limitados.",
+      "Genera un argumento basado en los textos y conectado con el propósito de la consigna; cita evidencia pertinente y específica de ambos textos fuente; analiza el tema y evalúa la validez de la argumentación, distinguiendo las afirmaciones respaldadas de las no respaldadas."
+    ],
+    indicadores: [
+      "Formula una tesis clara sobre cuál argumento está mejor fundamentado, no sobre el tema en sí.",
+      "Cita evidencia pertinente y específica del texto A.",
+      "Cita evidencia pertinente y específica del texto B.",
+      "Explica de qué modo cada evidencia sostiene la tesis, en lugar de limitarse a presentarla.",
+      "Evalúa la validez de la argumentación: distingue lo respaldado de lo no respaldado, detecta razonamiento falaz o sesgo.",
+      "Se mantiene en el análisis y evita la opinión personal sobre el tema."
+    ]
+  },
+  {
+    n: 2,
+    nombre: "Desarrollo de ideas y estructura organizativa",
+    foco: "Cómo se construye y se presenta el argumento",
+    niveles: [
+      "Las ideas están insuficientemente desarrolladas o resultan ilógicas, con elaboración mínima o nula; la progresión es poco clara o inexistente y los detalles faltan o son irrelevantes; la estructura organizativa es ineficaz o no se percibe; el estilo es informal o el tono inadecuado.",
+      "Las ideas se desarrollan de manera inconsistente o reflejan un razonamiento vago, con solo algunas ideas elaboradas; hay cierta progresión, pero los detalles pueden estar desarticulados; la estructura agrupa las ideas de forma parcialmente eficaz; las transiciones y el estilo formal se mantienen de modo inconsistente.",
+      "Las ideas están bien desarrolladas y son lógicas, con la mayoría elaboradas; la progresión es sensata y las conexiones entre los detalles y las ideas principales son claras; la estructura organizativa transmite eficazmente el mensaje y el propósito; aplica bien los recursos de transición y sostiene un estilo formal y un tono apropiado."
+    ],
+    indicadores: [
+      "Introducción con contexto breve y tesis explícita.",
+      "Cada párrafo del cuerpo desarrolla una idea con oración temática propia.",
+      "Las ideas se elaboran: no se enuncian y se abandonan.",
+      "La progresión entre párrafos es lógica y hay recursos de transición adecuados.",
+      "Conclusión que sintetiza sin introducir evidencia nueva.",
+      "Estilo formal, tono académico y vocabulario preciso; sin primera persona ni coloquialismos."
+    ]
+  },
+  {
+    n: 3,
+    nombre: "Claridad y dominio de las convenciones del español",
+    foco: "Con cuánta claridad está escrito el texto",
+    niveles: [
+      "La estructura oracional es deficiente de manera constante y llega a oscurecer el significado; el control de las convenciones básicas es mínimo; los errores son graves y frecuentes e interfieren en la comprensión, o el texto es insuficiente para demostrar dominio.",
+      "La estructura oracional es inconsistente, con oraciones repetitivas, entrecortadas o farragosas; el control de las convenciones básicas es irregular; los errores frecuentes interfieren en ocasiones con la comprensión; el uso alcanza un nivel mínimamente aceptable para un borrador escrito bajo presión de tiempo.",
+      "La estructura oracional es mayormente correcta y variada, con una fluidez que favorece la claridad; aplica con competencia las convenciones de gramática, ortografía y puntuación; puede contener algunos errores, pero no interfieren con la comprensión, como corresponde a un borrador escrito bajo demanda."
+    ],
+    indicadores: [
+      "Oraciones variadas y completas: sin fragmentos ni oraciones fundidas.",
+      "Concordancia de sujeto y verbo, uso correcto de tiempos y modos verbales.",
+      "Uso apropiado de pronombres, preposiciones y palabras que suelen confundirse.",
+      "Ortografía, acentuación y mayúsculas.",
+      "Puntuación que organiza el sentido, en especial la coma y el punto.",
+      "Los errores presentes no impiden la comprensión del texto."
+    ]
+  }
+];
 
-        message.appendChild(emojiSpan);
-        message.appendChild(bubble);
+const NIVEL_CLASE = ["n0", "n1", "n2"];
+const NIVEL_ETIQUETA = ["0 · insuficiente", "1 · en desarrollo", "2 · competente"];
 
-        if (className === 'bot') {
-          const copyBtn = document.createElement('button');
-          copyBtn.className = 'copy-btn';
-          copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-          copyBtn.title = 'Copiar evaluación';
 
-          const tooltip = document.createElement('span');
-          tooltip.className = 'tooltip';
-          tooltip.innerText = '¡Copiado!';
+/* ════════════════════════════════════════════════════════════════════
+   2. UTILIDADES
+   ════════════════════════════════════════════════════════════════════ */
+const $ = (s) => document.querySelector(s);
+const CLAVE_ALM = "ged_re_" + PROVEEDOR.id + "_clave";
+const MODELO_ALM = "ged_re_" + PROVEEDOR.id + "_modelo";
+const LISTA_ALM = "ged_re_" + PROVEEDOR.id + "_modelos";
+const PREF_ALM = "ged_re_preferencias";
+const BORRADOR_ALM = "ged_re_borrador";
 
-          copyBtn.addEventListener('click', function() {
-            copyTextToClipboard(text);
-            tooltip.classList.add('show');
-            setTimeout(() => tooltip.classList.remove('show'), 2000);
-          });
+function alm(clave, valor) {
+  try {
+    if (valor === undefined) return localStorage.getItem(clave);
+    if (valor === null) { localStorage.removeItem(clave); return null; }
+    localStorage.setItem(clave, valor);
+    return valor;
+  } catch (e) { return null; }
+}
 
-          bubble.appendChild(copyBtn);
-          bubble.appendChild(tooltip);
-        }
+function crear(etiqueta, clases, texto) {
+  const el = document.createElement(etiqueta);
+  if (clases) el.className = clases;
+  if (texto !== undefined && texto !== null) el.textContent = String(texto);
+  return el;
+}
 
-        chatbox.appendChild(message);
-        chatbox.scrollTop = chatbox.scrollHeight;
-        renderMathJax([bubble]);
+function mostrarAviso(contenedor, tipo, titulo, cuerpo, puntos) {
+  const cont = $(contenedor);
+  cont.innerHTML = "";
+  const caja = crear("div", "aviso " + (tipo || ""));
+  if (titulo) caja.appendChild(crear("strong", null, titulo));
+  if (cuerpo) caja.appendChild(document.createTextNode(cuerpo));
+  if (puntos && puntos.length) {
+    const ul = crear("ul");
+    puntos.forEach((p) => ul.appendChild(crear("li", null, p)));
+    caja.appendChild(ul);
+  }
+  cont.appendChild(caja);
+  return caja;
+}
+
+function limpiarAviso(contenedor) { $(contenedor).innerHTML = ""; }
+
+function contar(texto) {
+  const limpio = (texto || "").trim();
+  if (!limpio) return { palabras: 0, parrafos: 0, oraciones: 0, media: 0 };
+  const palabras = limpio.split(/\s+/).filter(Boolean).length;
+  const parrafos = limpio.split(/\n+/).map((p) => p.trim()).filter((p) => p.length > 0).length;
+  const oraciones = (limpio.match(/[^.!?…]+[.!?…]+(\s|$)/g) || []).length || 1;
+  return { palabras, parrafos, oraciones, media: Math.round(palabras / oraciones) };
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   3. PREFERENCIAS DE PRESENTACIÓN (DUA)
+   ════════════════════════════════════════════════════════════════════ */
+const ESCALAS = [
+  { v: 1, t: "normal" },
+  { v: 1.15, t: "grande" },
+  { v: 1.32, t: "muy grande" }
+];
+let iEscala = 0;
+
+function guardarPreferencias() {
+  alm(PREF_ALM, JSON.stringify({
+    oscuro: document.body.classList.contains("oscuro"),
+    contraste: document.body.classList.contains("contraste"),
+    escala: iEscala
+  }));
+}
+
+function aplicarPreferencias() {
+  let p = {};
+  try { p = JSON.parse(alm(PREF_ALM) || "{}"); } catch (e) { p = {}; }
+  if (p.oscuro) { document.body.classList.add("oscuro"); $("#btn-tema").setAttribute("aria-pressed", "true"); $("#btn-tema").textContent = "Modo claro"; }
+  if (p.contraste) { document.body.classList.add("contraste"); $("#btn-contraste").setAttribute("aria-pressed", "true"); }
+  iEscala = Number(p.escala) || 0;
+  document.documentElement.style.setProperty("--escala", ESCALAS[iEscala].v);
+  $("#btn-texto").textContent = "Texto: " + ESCALAS[iEscala].t;
+}
+
+$("#btn-tema").addEventListener("click", function () {
+  const oscuro = document.body.classList.toggle("oscuro");
+  this.setAttribute("aria-pressed", String(oscuro));
+  this.textContent = oscuro ? "Modo claro" : "Modo oscuro";
+  guardarPreferencias();
+});
+
+$("#btn-contraste").addEventListener("click", function () {
+  const alto = document.body.classList.toggle("contraste");
+  this.setAttribute("aria-pressed", String(alto));
+  guardarPreferencias();
+});
+
+$("#btn-texto").addEventListener("click", function () {
+  iEscala = (iEscala + 1) % ESCALAS.length;
+  document.documentElement.style.setProperty("--escala", ESCALAS[iEscala].v);
+  this.textContent = "Texto: " + ESCALAS[iEscala].t;
+  guardarPreferencias();
+});
+
+$("#btn-config").addEventListener("click", function () {
+  const panel = $("#panel-config");
+  const abierto = panel.hidden;
+  panel.hidden = !abierto;
+  this.setAttribute("aria-expanded", String(abierto));
+  if (abierto) { panel.scrollIntoView({ block: "nearest" }); $("#clave").focus(); }
+});
+
+
+/* ════════════════════════════════════════════════════════════════════
+   4. GESTIÓN AUTOMÁTICA DE MODELOS
+   La lista se consulta en vivo al proveedor y se ordena con una
+   puntuación heurística. Si el proveedor retira un modelo o publica
+   uno nuevo, la selección automática se ajusta sin tocar el archivo.
+   ════════════════════════════════════════════════════════════════════ */
+let modelosDisponibles = [];
+let modelosDescartados = [];
+
+function estadoMotor(tipo, texto, htmlModelo) {
+  const punto = $("#punto-estado");
+  punto.className = "punto" + (tipo === "ok" ? " activo" : tipo === "fallo" ? " fallo" : "");
+  const cont = $("#motor-txt");
+  cont.innerHTML = "";
+  cont.appendChild(document.createTextNode(texto));
+  if (htmlModelo) {
+    cont.appendChild(document.createTextNode(" "));
+    cont.appendChild(crear("strong", null, htmlModelo));
+  }
+}
+
+function modeloElegido() {
+  const sel = $("#modelo").value;
+  if (sel && sel !== "auto") return sel;
+  const vivos = modelosDisponibles.filter((m) => modelosDescartados.indexOf(m.id) === -1);
+  if (vivos.length) return vivos[0].id;
+  const respaldo = PROVEEDOR.modelosRespaldo.filter((id) => modelosDescartados.indexOf(id) === -1);
+  return respaldo[0] || PROVEEDOR.modelosRespaldo[0];
+}
+
+function pintarModelos() {
+  const sel = $("#modelo");
+  const previo = alm(MODELO_ALM) || "auto";
+  sel.innerHTML = "";
+  const auto = crear("option", null, "Selección automática (recomendado)");
+  auto.value = "auto";
+  sel.appendChild(auto);
+  modelosDisponibles.forEach((m, i) => {
+    const o = crear("option", null, m.nombre + (i === 0 ? " — recomendado" : ""));
+    o.value = m.id;
+    sel.appendChild(o);
+  });
+  sel.value = modelosDisponibles.some((m) => m.id === previo) ? previo : "auto";
+  const activo = modelosDisponibles.find((m) => m.id === modeloElegido());
+  estadoMotor("ok", "Motor listo. Modelo en uso:", activo ? activo.nombre : modeloElegido());
+}
+
+async function refrescarModelos(forzar) {
+  const clave = alm(CLAVE_ALM);
+  if (!clave) { estadoMotor("", "Sin configurar. Abre Configuración para introducir tu clave."); return; }
+
+  if (!forzar) {
+    try {
+      const guardado = JSON.parse(alm(LISTA_ALM) || "null");
+      if (guardado && Date.now() - guardado.fecha < 12 * 3600 * 1000 && guardado.lista.length) {
+        modelosDisponibles = guardado.lista;
+        pintarModelos();
+        return;
       }
+    } catch (e) { /* se vuelve a consultar */ }
+  }
 
-      function analyzeTextStructure(texto) {
-        const numPalabras     = texto.split(/\s+/).filter(p => p.length > 0).length;
-        const numParrafos     = texto.split(/\n\n+|\.\s*\n/).filter(p => p.trim().length > 0).length;
-        const referenciaTextos = /texto|pasaje|autor|fuente|artículo|documento/gi.test(texto);
-        const citasDirectas   = /"[^"]+"/g.test(texto) || /según|cita|menciona|afirma/gi.test(texto);
-        const argumentativo   = /por tanto|en conclusión|sin embargo|además|por otro lado|en contraste/gi.test(texto);
-        return {
-          numPalabras, numParrafos, referenciaTextos, citasDirectas, argumentativo,
-          longitudAdecuada:  numPalabras >= 300 && numPalabras <= 500,
-          estructuraAdecuada: numParrafos >= 4 && numParrafos <= 7
-        };
-      }
+  estadoMotor("", "Consultando los modelos disponibles…");
+  try {
+    const lista = await PROVEEDOR.listarModelos(clave);
+    if (!lista.length) throw new Error("El proveedor no devolvió modelos de texto utilizables.");
+    lista.sort((a, b) => b.puntaje - a.puntaje);
+    modelosDisponibles = lista;
+    modelosDescartados = [];
+    alm(LISTA_ALM, JSON.stringify({ fecha: Date.now(), lista }));
+    pintarModelos();
+    mostrarAviso("#aviso-config", "exito", "Modelos detectados.",
+      "Se encontraron " + lista.length + " modelos de texto. La selección automática usará «" + lista[0].nombre + "».");
+  } catch (e) {
+    modelosDisponibles = PROVEEDOR.modelosRespaldo.map((id) => ({ id, nombre: id, puntaje: 0 }));
+    pintarModelos();
+    estadoMotor("fallo", "No se pudo consultar la lista. Se usará la lista de respaldo:", modeloElegido());
+    mostrarAviso("#aviso-config", "", "No se pudo consultar la lista de modelos.",
+      traducirError(e) + " La herramienta seguirá funcionando con su lista interna de respaldo.");
+  }
+}
 
-      // ─── FUNCIÓN PRINCIPAL — LLAMA AL BACKEND EN RENDER ─────────────────────
-      async function getBotResponse(ensayo) {
+$("#btn-ver-clave").addEventListener("click", function () {
+  const campo = $("#clave");
+  const oculto = campo.type === "password";
+  campo.type = oculto ? "text" : "password";
+  this.textContent = oculto ? "Ocultar" : "Mostrar";
+});
 
-        // Devolver respuesta cacheada si ya existe
-        if (cache.responses[ensayo]) return cache.responses[ensayo];
+$("#btn-guardar-clave").addEventListener("click", async function () {
+  const v = $("#clave").value.trim();
+  if (!v) { mostrarAviso("#aviso-config", "error", "Falta la clave.", "Introduce una clave válida antes de guardar."); return; }
+  alm(CLAVE_ALM, v);
+  alm(LISTA_ALM, null);
+  await refrescarModelos(true);
+});
 
-        const analisis = analyzeTextStructure(ensayo);
+$("#btn-refrescar").addEventListener("click", () => refrescarModelos(true));
 
-        // Texto demasiado corto → evaluación automática sin llamar al backend
-        if (analisis.numPalabras < 200) {
-          return `<div class="evaluation-container">
-            <div class="error-box">
-              <strong>⚠️ EVALUACIÓN AUTOMÁTICA: INSUFICIENTE</strong><br>
-              El texto es demasiado corto (${analisis.numPalabras} palabras). El GED requiere mínimo 300 palabras.
-            </div>
-            <div class="trait-evaluation">
-              <div class="trait-title">Característica 1: Argumentación y Uso de Evidencia <span class="score-badge score-0">0/2</span></div>
-              <p>Texto insuficiente para demostrar argumentación basada en textos fuente.</p>
-            </div>
-            <div class="trait-evaluation">
-              <div class="trait-title">Característica 2: Desarrollo de Ideas y Estructura <span class="score-badge score-0">0/2</span></div>
-              <p>Desarrollo insuficiente de ideas por limitación de longitud.</p>
-            </div>
-            <div class="trait-evaluation">
-              <div class="trait-title">Característica 3: Claridad y Dominio del Español <span class="score-badge score-0">0/2</span></div>
-              <p>Muestra insuficiente para evaluar dominio del español.</p>
-            </div>
-            <div class="total-score">Puntuación Total: 0/6</div>
-          </div>`;
-        }
+$("#btn-borrar-clave").addEventListener("click", () => {
+  alm(CLAVE_ALM, null); alm(LISTA_ALM, null); alm(MODELO_ALM, null);
+  $("#clave").value = "";
+  modelosDisponibles = [];
+  $("#modelo").innerHTML = '<option value="auto">Selección automática (recomendado)</option>';
+  estadoMotor("", "Clave eliminada de este navegador.");
+  mostrarAviso("#aviso-config", "exito", "Clave eliminada.", "Ya no queda ninguna credencial guardada en este equipo.");
+});
 
-        // ── Construir el prompt para el modelo ──
-        const prompt = `INSTRUCCIÓN CRÍTICA: Eres un evaluador certificado del GED Testing Service. Debes aplicar ESTRICTAMENTE la rúbrica oficial con las 41 subdimensiones específicas. NO seas permisivo - aplica los criterios reales del examen.
+$("#modelo").addEventListener("change", function () {
+  alm(MODELO_ALM, this.value);
+  const activo = modelosDisponibles.find((m) => m.id === modeloElegido());
+  estadoMotor("ok", "Motor listo. Modelo en uso:", activo ? activo.nombre : modeloElegido());
+});
 
-TEXTO A EVALUAR:
-${ensayo}
 
-INFORMACIÓN DEL ANÁLISIS PRELIMINAR:
-- Palabras: ${analisis.numPalabras}
-- Párrafos: ${analisis.numParrafos}
-- Referencias a textos: ${analisis.referenciaTextos ? 'Detectadas' : 'No detectadas'}
-- Citas directas: ${analisis.citasDirectas ? 'Presentes' : 'Ausentes'}
+/* ════════════════════════════════════════════════════════════════════
+   5. MEDIDOR DE EXTENSIÓN Y BORRADOR
+   ════════════════════════════════════════════════════════════════════ */
+function actualizarMedidor() {
+  const c = contar($("#ensayo").value);
+  $("#c-palabras").textContent = c.palabras;
+  $("#c-parrafos").textContent = c.parrafos;
+  $("#c-oraciones").textContent = c.oraciones;
+  $("#c-media").textContent = c.media;
 
-RÚBRICA OFICIAL A APLICAR:
+  const barra = $("#barra-ext");
+  const pct = Math.min((c.palabras / 600) * 100, 100);
+  barra.style.width = pct + "%";
+  barra.className = c.palabras >= 300 && c.palabras <= 500 ? "bien" : c.palabras > 500 ? "exceso" : "";
 
-CARACTERÍSTICA 1: ARGUMENTACIÓN Y USO DE EVIDENCIA (12 subdimensiones)
-Evalúa cada subdimensión con puntuación 0, 1, o 2:
-1. Afirmaciones claras y explícitas
-2. Afirmaciones lógicas basadas en lectura detallada del texto
-3. Afirmaciones que apoyan una postura clara
-4. Criterio evidente para analizar el asunto
-5. Postura relacionada con el tema y enfocada
-6. OBLIGATORIO: Citar evidencias de MÚLTIPLES textos fuente
-7. Evidencias que apoyan las afirmaciones
-8. Comentarios apropiados sobre las evidencias
-9. Análisis profundo del asunto descrito
-10. Evaluación de la argumentación desarrollada
-11. Comprensión clara de los argumentos en los textos
-12. Distinción entre afirmaciones fundamentadas y no fundamentadas
+  let msg = "Extensión recomendada: de 300 a 500 palabras, en 4 a 7 párrafos.";
+  if (c.palabras === 0) { /* mensaje base */ }
+  else if (c.palabras < 120) msg = "Faltan " + (300 - c.palabras) + " palabras para el mínimo recomendado. Un texto tan breve no ofrece muestra suficiente para calificar.";
+  else if (c.palabras < 300) msg = "Faltan " + (300 - c.palabras) + " palabras para el mínimo recomendado de 300.";
+  else if (c.palabras <= 500) msg = "Extensión adecuada. " + (c.parrafos >= 4 && c.parrafos <= 7 ? "El número de párrafos también es apropiado." : "Conviene organizar el texto en 4 a 7 párrafos.");
+  else msg = "El texto excede las 500 palabras recomendadas. Más extensión no mejora la puntuación si la evidencia no es específica.";
+  $("#medidor-desc").textContent = msg;
+}
 
-CARACTERÍSTICA 2: DESARROLLO DE IDEAS Y ESTRUCTURA (15 subdimensiones)
-1. Ideas bien desarrolladas y múltiples extensiones
-2. Ideas lógicas en relación con los textos
-3. Mayoría de ideas elaboradas
-4. Serie progresiva de ideas notoria
-5. Detalles relacionados claramente con ideas principales
-6. Detalles seleccionados cuidadosamente
-7. Estructura organizacional claramente establecida
-8. Estructura que realza el mensaje
-9. Uso apropiado de frases de transición
-10. Estilo formal mantenido
-11. Tono apropiado académico
-12. Conciencia del público y propósito
-13. Selección específica de palabras
-14. Uso apropiado del lenguaje (evitar coloquial)
-15. Ideas expresadas clara y específicamente
+let temporizadorBorrador = null;
+function guardarBorrador() {
+  clearTimeout(temporizadorBorrador);
+  temporizadorBorrador = setTimeout(() => {
+    alm(BORRADOR_ALM, JSON.stringify({
+      ensayo: $("#ensayo").value,
+      consigna: $("#consigna").value,
+      a: $("#fuente-a").value,
+      b: $("#fuente-b").value
+    }));
+  }, 700);
+}
 
-CARACTERÍSTICA 3: CLARIDAD Y DOMINIO DEL ESPAÑOL (14 subdimensiones)
-1. Estructura variada en oraciones
-2. Subordinación, coordinación y paralelismo correctos
-3. Evita palabras excesivas y estructuras confusas
-4. Uso apropiado de términos de transición
-5. Evita oraciones incompletas y mal puntuadas
-6. Uso correcto de modos verbales
-7. Concordancia sujeto-verbo apropiada
-8. Uso apropiado de pronombres
-9. Orden correcto de palabras
-10. Uso apropiado de mayúsculas
-11. Uso correcto de contracciones
-12. Puntuación apropiada
-13. Errores que no interfieren en comprensión
-14. Uso estándar apropiado para borrador académico
+function recuperarBorrador() {
+  try {
+    const b = JSON.parse(alm(BORRADOR_ALM) || "null");
+    if (!b) return;
+    $("#ensayo").value = b.ensayo || "";
+    $("#consigna").value = b.consigna || "";
+    $("#fuente-a").value = b.a || "";
+    $("#fuente-b").value = b.b || "";
+  } catch (e) { /* sin borrador */ }
+}
 
-REQUISITOS CRÍTICOS (penalizar severamente si faltan):
-- Mínimo 300 palabras
-- 4-7 párrafos organizados
-- OBLIGATORIO: Evidencia específica de DOS textos fuente diferentes
-- Análisis comparativo de argumentos
+["#ensayo", "#consigna", "#fuente-a", "#fuente-b"].forEach((s) =>
+  $(s).addEventListener("input", () => { if (s === "#ensayo") actualizarMedidor(); guardarBorrador(); })
+);
 
-INSTRUCCIÓN DE FORMATO — CRÍTICO:
-- Devuelve ÚNICAMENTE el HTML indicado. NO uses markdown, NO pongas bloques de código.
-- Cada subdimensión DEBE ir en su propio <li> separado — NUNCA en línea separadas por "|" ni como texto corrido.
-- Usa class="ok" si puntuación=2, class="partial" si puntuación=1, class="fail" si puntuación=0.
-- Emoji: ✅ para puntuación 2, ⚠️ para puntuación 1, ❌ para puntuación 0.
+$("#btn-limpiar").addEventListener("click", () => {
+  if (!confirm("Se borrará la respuesta y los textos fuente de esta pantalla. ¿Continuar?")) return;
+  ["#ensayo", "#consigna", "#fuente-a", "#fuente-b"].forEach((s) => { $(s).value = ""; });
+  alm(BORRADOR_ALM, null);
+  actualizarMedidor();
+  limpiarAviso("#aviso-principal");
+  $("#informe").classList.remove("visible");
+});
 
-<div class="evaluation-container">
-  <h3>Evaluación Oficial GED — Rúbrica Certificada</h3>
 
-  <div class="trait-evaluation">
-    <div class="trait-title">Característica 1: Argumentación y Uso de Evidencia <span class="score-badge score-[X]">[X]/2</span></div>
-    <p><strong>Subdimensiones (12):</strong></p>
-    <ol class="subdim-list">
-      <li class="ok">✅ (2) 1. Afirmaciones claras y explícitas — explicación breve</li>
-      <li class="fail">❌ (0) 2. Lógicas basadas en lectura detallada — explicación breve</li>
-      <!-- una <li> por cada una de las 12 subdimensiones -->
-    </ol>
-    <p><strong>Cálculo:</strong> [suma] ÷ 12 = [X]</p>
-    <p><strong>Problemas detectados:</strong> descripción específica</p>
-  </div>
+/* ════════════════════════════════════════════════════════════════════
+   6. CRONÓMETRO
+   ════════════════════════════════════════════════════════════════════ */
+let relojInt = null, relojSeg = 45 * 60, relojActivo = false;
 
-  <div class="trait-evaluation">
-    <div class="trait-title">Característica 2: Desarrollo de Ideas y Estructura <span class="score-badge score-[Y]">[Y]/2</span></div>
-    <p><strong>Subdimensiones (15):</strong></p>
-    <ol class="subdim-list">
-      <li class="ok">✅ (2) 1. Ideas bien desarrolladas — explicación breve</li>
-      <!-- una <li> por cada una de las 15 subdimensiones -->
-    </ol>
-    <p><strong>Cálculo:</strong> [suma] ÷ 15 = [Y]</p>
-    <p><strong>Problemas detectados:</strong> descripción específica</p>
-  </div>
+function pintarReloj() {
+  const m = Math.floor(relojSeg / 60), s = relojSeg % 60;
+  $("#reloj").textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  $("#reloj").classList.toggle("alerta", relojSeg <= 300);
+}
 
-  <div class="trait-evaluation">
-    <div class="trait-title">Característica 3: Claridad y Dominio del Español <span class="score-badge score-[Z]">[Z]/2</span></div>
-    <p><strong>Subdimensiones (14):</strong></p>
-    <ol class="subdim-list">
-      <li class="ok">✅ (2) 1. Estructura variada de oraciones — explicación breve</li>
-      <!-- una <li> por cada una de las 14 subdimensiones -->
-    </ol>
-    <p><strong>Cálculo:</strong> [suma] ÷ 14 = [Z]</p>
-    <p><strong>Problemas detectados:</strong> descripción específica</p>
-  </div>
+$("#duracion").addEventListener("change", function () {
+  if (relojActivo) return;
+  relojSeg = Number(this.value) * 60;
+  pintarReloj();
+});
 
-  <div class="total-score">Puntuación Total: [X+Y+Z]/6</div>
+$("#btn-reloj").addEventListener("click", function () {
+  if (relojActivo) {
+    clearInterval(relojInt); relojActivo = false;
+    this.textContent = "Reanudar"; $("#reloj-pie").textContent = "En pausa";
+    $("#reloj").setAttribute("aria-live", "off");
+    return;
+  }
+  relojActivo = true;
+  this.textContent = "Pausar";
+  $("#reloj-pie").textContent = "En marcha";
+  relojInt = setInterval(() => {
+    relojSeg--;
+    pintarReloj();
+    if ([600, 300, 60].indexOf(relojSeg) !== -1) {
+      $("#reloj").setAttribute("aria-live", "polite");
+      $("#reloj-pie").textContent = "Quedan " + Math.round(relojSeg / 60) + " minuto(s)";
+      setTimeout(() => $("#reloj").setAttribute("aria-live", "off"), 1500);
+    }
+    if (relojSeg <= 0) {
+      clearInterval(relojInt); relojActivo = false; relojSeg = 0;
+      $("#btn-reloj").textContent = "Iniciar";
+      $("#reloj-pie").textContent = "Tiempo cumplido";
+    }
+  }, 1000);
+});
 
-  <h4>Veredicto Final</h4>
-  <p>[Evaluación honesta del nivel de la respuesta según estándares GED reales. Sé directo sobre las deficiencias.]</p>
-</div>
+$("#btn-reloj-reset").addEventListener("click", () => {
+  clearInterval(relojInt); relojActivo = false;
+  relojSeg = Number($("#duracion").value) * 60;
+  $("#btn-reloj").textContent = "Iniciar";
+  $("#reloj-pie").textContent = "Detenido";
+  pintarReloj();
+});
 
-RECORDATORIO FINAL:
-- NO infles puntuaciones, sé estricto y realista
-- Una respuesta sin citas de AMBOS textos NO puede obtener más de 1 punto en Característica 1
-- Genera exactamente 12 + 15 + 14 = 41 ítems <li>, uno por subdimensión`;
 
-        // ── Llamada al backend en Render ──────────────────────────────────────
-        try {
-          const response = await fetch(BACKEND_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messages: [
-                { role: "user", content: prompt }
-              ]
-            })
-          });
+/* ════════════════════════════════════════════════════════════════════
+   7. TABLA DE RÚBRICA DE REFERENCIA
+   ════════════════════════════════════════════════════════════════════ */
+function pintarTablaRubrica() {
+  const cont = $("#tabla-rubrica");
+  RUBRICA.forEach((r) => {
+    const det = crear("details");
+    const sum = crear("summary", null, "Rasgo " + r.n + ": " + r.nombre);
+    det.appendChild(sum);
+    const cuerpo = crear("div", "det-cuerpo");
+    const tabla = crear("table");
+    const cap = crear("caption", null, "Descriptores del rasgo " + r.n + " (" + r.foco.toLowerCase() + ").");
+    tabla.appendChild(cap);
+    const thead = crear("thead");
+    const trh = crear("tr");
+    ["Puntos", "Descriptor"].forEach((t) => {
+      const th = crear("th", null, t);
+      th.setAttribute("scope", "col");
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    tabla.appendChild(thead);
+    const tb = crear("tbody");
+    r.niveles.forEach((d, i) => {
+      const tr = crear("tr");
+      const th = crear("th", null, String(i));
+      th.setAttribute("scope", "row");
+      tr.appendChild(th);
+      tr.appendChild(crear("td", null, d));
+      tb.appendChild(tr);
+    });
+    tabla.appendChild(tb);
+    cuerpo.appendChild(tabla);
+    det.appendChild(cuerpo);
+    cont.appendChild(det);
+  });
+}
 
-          if (!response.ok) {
-            // Intentar leer el cuerpo del error
-            const errBody = await response.json().catch(() => ({}));
-            throw new Error(errBody.error?.message || `Error HTTP ${response.status}`);
-          }
 
-          const json = await response.json();
+/* ════════════════════════════════════════════════════════════════════
+   8. CONSTRUCCIÓN DE LA CONSULTA
+   ════════════════════════════════════════════════════════════════════ */
+const SISTEMA = [
+  "Eres un calificador experto de la respuesta extendida del examen GED de Razonamiento a través de las artes del lenguaje, en su versión en español.",
+  "Aplicas la rúbrica oficial de tres rasgos, cada uno de 0 a 2 puntos, con el rigor de la calificación real: ni indulgente ni punitivo.",
+  "No inventas contenido que no esté en el texto del estudiante. No supones que una cita es fiel si no dispones del texto fuente.",
+  "Escribes siempre en español académico formal, en segunda persona de cortesía dirigida al estudiante, sin coloquialismos y sin emoticonos.",
+  "Devuelves exclusivamente un objeto JSON válido, sin texto adicional, sin explicaciones previas y sin delimitadores de bloque de código."
+].join(" ");
 
-          // Compatibilidad: el backend puede devolver OpenAI-style o {content: ...}
-          let data = "";
-          if (json.choices && json.choices[0]?.message?.content) {
-            data = json.choices[0].message.content.trim();
-          } else if (json.content) {
-            data = json.content.trim();
-          } else {
-            throw new Error("Respuesta inesperada del backend: " + JSON.stringify(json));
-          }
+function construirConsulta(datos) {
+  const p = [];
+  p.push("Evalúa la siguiente respuesta extendida aplicando la rúbrica oficial que se transcribe más abajo.");
+  p.push("");
+  p.push("=== DATOS DE LA TAREA ===");
+  p.push("Consigna: " + (datos.consigna ? datos.consigna : "NO PROPORCIONADA. Asume la consigna estándar: analizar los argumentos de dos textos y explicar cuál está mejor fundamentado, con evidencia de ambos."));
+  p.push("");
+  p.push("Texto fuente A: " + (datos.a ? "\n" + datos.a : "NO PROPORCIONADO."));
+  p.push("");
+  p.push("Texto fuente B: " + (datos.b ? "\n" + datos.b : "NO PROPORCIONADO."));
+  p.push("");
+  if (!datos.a || !datos.b) {
+    p.push("ADVERTENCIA: no dispones de ambos textos fuente. En consecuencia, NO afirmes que una cita es exacta o inexacta. Evalúa el rasgo 1 por la presencia, especificidad y función analítica de la evidencia que el estudiante atribuye a cada texto, y consigna esta limitación en el campo «limitacion».");
+  } else {
+    p.push("Dispones de ambos textos fuente: verifica si las evidencias citadas existen realmente en ellos y si proceden de los dos textos. Señala toda cita inventada, tergiversada o atribuida al texto equivocado.");
+  }
+  p.push("");
+  p.push("=== RESPUESTA DEL ESTUDIANTE ===");
+  p.push(datos.ensayo);
+  p.push("=== FIN DE LA RESPUESTA ===");
+  p.push("");
+  p.push("Recuento verificado por la aplicación (no lo recalcules): " + datos.c.palabras + " palabras, " + datos.c.parrafos + " párrafos, " + datos.c.oraciones + " oraciones.");
+  p.push("");
+  p.push("=== RÚBRICA OFICIAL ===");
+  RUBRICA.forEach((r) => {
+    p.push("RASGO " + r.n + ": " + r.nombre + " (" + r.foco + ")");
+    r.niveles.forEach((d, i) => p.push("  " + i + " punto(s): " + d));
+    p.push("  Indicadores de diagnóstico que debes valorar uno por uno:");
+    r.indicadores.forEach((ind, i) => p.push("    " + (i + 1) + ". " + ind));
+    p.push("");
+  });
+  p.push("=== CRITERIOS DE CALIBRACIÓN ===");
+  p.push("1. La tarea pide analizar cuál argumento está mejor fundamentado por la evidencia de los textos. Si el estudiante expone su opinión personal sobre el tema en lugar de analizar el respaldo textual, el rasgo 1 no puede superar 1 punto.");
+  p.push("2. Si no cita evidencia identificable de ambos textos fuente, el rasgo 1 no puede alcanzar 2 puntos.");
+  p.push("3. Si se limita a resumir o parafrasear los textos sin evaluar la solidez de la argumentación, el rasgo 1 no puede alcanzar 2 puntos.");
+  p.push("4. Un texto de menos de 300 palabras rara vez ofrece muestra suficiente para 2 puntos en los rasgos 2 y 3; uno de menos de 150 palabras es, por regla general, insuficiente para demostrar dominio.");
+  p.push("5. El rasgo 3 se juzga como borrador escrito bajo presión de tiempo: no se exige perfección, sino que los errores no interfieran con la comprensión.");
+  p.push("6. No infles ni deprimas la puntuación. Justifica cada punto con hechos observables en el texto.");
+  p.push("");
+  if (datos.rigor === "formativo") {
+    p.push("MODO FORMATIVO: mantén exactamente la misma puntuación que otorgarías en la calificación oficial, pero amplía las explicaciones, redacta los ejemplos de reescritura de forma completa y añade instrucciones de práctica concretas y accionables.");
+  } else {
+    p.push("MODO OFICIAL: sé conciso y directo, como un informe de calificación.");
+  }
+  p.push("");
+  p.push("=== FORMATO DE SALIDA ===");
+  p.push("Devuelve ÚNICAMENTE este objeto JSON, sin ningún texto fuera de él y sin delimitadores de bloque de código:");
+  p.push(JSON.stringify({
+    valido: true,
+    limitacion: "Cadena vacía si no hay limitaciones; si faltan los textos fuente, explícalo en una oración.",
+    tesis_detectada: "La tesis que el estudiante formula, citada o resumida; cadena vacía si no hay tesis identificable.",
+    tesis_sugerida: "Una tesis modelo de una o dos oraciones adecuada a esta tarea.",
+    veredicto: "Dos a cuatro oraciones que sintetizan el desempeño y explican el resultado global.",
+    rasgos: [{
+      numero: 1,
+      puntuacion: 2,
+      sintesis: "Una o dos oraciones que justifican la puntuación de este rasgo.",
+      indicadores: [{ criterio: "Texto exacto del indicador tal como aparece en la rúbrica", estado: "logrado | parcial | ausente", comentario: "Evidencia observable en el texto del estudiante." }],
+      para_subir_de_nivel: ["Acción concreta y verificable.", "Otra acción concreta."]
+    }],
+    citas_del_texto_a: ["Fragmento del ensayo donde se usa evidencia atribuida al texto A."],
+    citas_del_texto_b: ["Fragmento del ensayo donde se usa evidencia atribuida al texto B."],
+    opinion_personal: ["Fragmentos donde el estudiante opina sobre el tema en lugar de analizar la evidencia."],
+    fortalezas: ["Aspecto logrado, expresado con precisión."],
+    prioridades: [{ titulo: "Nombre breve de la prioridad", porque: "Por qué importa para la puntuación.", como: "Cómo hacerlo, paso a paso.", ejemplo: "Reescritura modelo de un fragmento del propio estudiante." }]
+  }, null, 1));
+  p.push("");
+  p.push("Reglas del JSON: incluye los tres rasgos con sus números 1, 2 y 3; incluye los seis indicadores de cada rasgo con el texto del criterio copiado literalmente de la rúbrica; «puntuacion» debe ser el número entero 0, 1 o 2; entre dos y cuatro prioridades; no añadas claves distintas de las indicadas.");
+  return p.join("\n");
+}
 
-          // Limpiar si el modelo añadió bloques de código markdown
-          data = data
-            .replace(/^```html\s*/i, '')
-            .replace(/^```\s*/i, '')
-            .replace(/\s*```$/i, '')
-            .trim();
+function extraerJSON(texto) {
+  let t = String(texto || "").trim();
+  t = t.replace(/^```[a-zA-Z]*\s*/, "").replace(/\s*```$/, "").trim();
+  const i = t.indexOf("{"), f = t.lastIndexOf("}");
+  if (i >= 0 && f > i) t = t.slice(i, f + 1);
+  return JSON.parse(t);
+}
 
-          cache.responses[ensayo] = data;
-          return data;
+function traducirError(e) {
+  const m = String((e && e.message) || e || "");
+  if (/401|unauthorized|invalid.*api.*key|authentication/i.test(m)) return "La clave no es válida o ha caducado. Revísala en Configuración.";
+  if (/403|permission|forbidden/i.test(m)) return "La clave no tiene permiso para este modelo o para esta operación.";
+  if (/429|rate.?limit|quota/i.test(m)) return "Se alcanzó el límite de uso del proveedor. Espera unos minutos y vuelve a intentarlo.";
+  if (/credit|billing|insufficient/i.test(m)) return "La cuenta no tiene saldo o crédito suficiente en el proveedor.";
+  if (/failed to fetch|networkerror|load failed/i.test(m)) return "No hubo conexión con el proveedor. Comprueba tu red; si abriste el archivo desde una carpeta local, prueba a servirlo desde un sitio web.";
+  if (/model|not.?found|decommission|deprecat/i.test(m)) return "El modelo indicado ya no está disponible en el proveedor.";
+  return m || "Error desconocido.";
+}
 
-        } catch (error) {
-          console.error('Error al llamar al backend:', error);
-          return `<div class="evaluation-container">
-            <div class="error-box">
-              <strong>⚠️ Error al conectar con el backend:</strong> ${error.message}<br><br>
-              Posibles causas:<br>
-              • El servidor en Render está dormido (espera ~30 s y reintenta)<br>
-              • URL del backend incorrecta<br>
-              • Problema de conexión a internet<br><br>
-              URL usada: <code>${BACKEND_URL}</code><br>
-              Revisa la consola del navegador (F12) para más detalles.
-            </div>
-          </div>`;
-        }
-      }
 
-      // ─── MANEJADOR DEL FORMULARIO ────────────────────────────────────────────
-      async function handleSendMessage(e) {
-        e.preventDefault();
-        const userText = userInput.value.trim();
-        if (!userText) return;
+/* ════════════════════════════════════════════════════════════════════
+   9. LLAMADA CON AUTORREPARACIÓN DE MODELO
+   Si el modelo elegido ha sido retirado, se descarta, se vuelve a
+   consultar la lista y se reintenta con el siguiente mejor.
+   ════════════════════════════════════════════════════════════════════ */
+let control = null;
 
-        addMessage(userText, 'user', getEmoji('user'));
-        userInput.value = '';
-        loadingIndicator.style.display = 'block';
+async function pedirEvaluacion(consulta) {
+  const clave = alm(CLAVE_ALM);
+  if (!clave) throw new Error("No hay clave configurada.");
+  let ultimoError = null;
 
-        try {
-          const botResponse = await getBotResponse(userText);
-          loadingIndicator.style.display = 'none';
-          addMessage(botResponse, 'bot', getEmoji('bot'));
-        } catch (error) {
-          console.error('Error al procesar:', error);
-          loadingIndicator.style.display = 'none';
-          addMessage('Error al procesar la evaluación. Por favor, intenta nuevamente.', 'bot', getEmoji('bot'));
-        }
-      }
+  for (let intento = 0; intento < 3; intento++) {
+    const modelo = modeloElegido();
+    $("#cargando-txt").textContent = intento === 0
+      ? "Aplicando la rúbrica oficial con " + modelo + "…"
+      : "Reintentando con " + modelo + "…";
+    try {
+      const texto = await PROVEEDOR.completar({ clave, modelo, sistema: SISTEMA, consulta, senal: control.signal });
+      return { texto, modelo };
+    } catch (e) {
+      if (e.name === "AbortError") throw e;
+      ultimoError = e;
+      const m = String(e.message || "");
+      const modeloCaido = /model|not.?found|decommission|deprecat|404|does not exist/i.test(m);
+      if (!modeloCaido) throw e;
+      modelosDescartados.push(modelo);
+      alm(LISTA_ALM, null);
+      try {
+        const lista = await PROVEEDOR.listarModelos(clave);
+        lista.sort((a, b) => b.puntaje - a.puntaje);
+        modelosDisponibles = lista;
+        alm(LISTA_ALM, JSON.stringify({ fecha: Date.now(), lista }));
+        pintarModelos();
+      } catch (e2) { /* se continúa con la lista de respaldo */ }
+      if ($("#modelo").value !== "auto") { $("#modelo").value = "auto"; alm(MODELO_ALM, "auto"); }
+    }
+  }
+  throw ultimoError || new Error("No fue posible completar la evaluación.");
+}
 
-      // ─── INICIALIZACIÓN ──────────────────────────────────────────────────────
-      document.addEventListener('DOMContentLoaded', function() {
-        if (localStorage.getItem('darkMode') === 'true') {
-          document.body.classList.add('dark');
-        }
 
-        setTimeout(() => {
-          addMessage(
-            '¡Hola! Soy el evaluador GED con <strong>rúbrica oficial</strong>.<br><br>' +
-            '<div class="warning-box">⚠️ Esta herramienta aplica los criterios reales del GED Testing Service de manera estricta. No esperes puntuaciones infladas.</div><br>' +
-            'Implementa las <strong>41 subdimensiones oficiales</strong>:<br>' +
-            '• Característica 1: 12 subdimensiones (Argumentación)<br>' +
-            '• Característica 2: 15 subdimensiones (Desarrollo)<br>' +
-            '• Característica 3: 14 subdimensiones (Español)<br><br>' +
-            '<strong>Requisitos críticos:</strong><br>' +
-            '• 300-500 palabras<br>' +
-            '• 4-7 párrafos<br>' +
-            '• Evidencia de AMBOS textos fuente<br>' +
-            '• Análisis comparativo de argumentos<br><br>' +
-            'Pega tu respuesta extendida para recibir una evaluación realista según los estándares oficiales del GED.',
-            'bot',
-            getEmoji('bot')
-          );
-        }, 100);
+/* ════════════════════════════════════════════════════════════════════
+   10. EVALUACIÓN
+   ════════════════════════════════════════════════════════════════════ */
+let ultimoInforme = null;
+
+async function evaluar() {
+  limpiarAviso("#aviso-principal");
+  const ensayo = $("#ensayo").value.trim();
+  const c = contar(ensayo);
+
+  if (!alm(CLAVE_ALM)) {
+    mostrarAviso("#aviso-principal", "error", "Falta configurar la clave.",
+      "Abre el panel de configuración e introduce tu clave del proveedor. Se guarda solo en este navegador.");
+    $("#panel-config").hidden = false;
+    $("#btn-config").setAttribute("aria-expanded", "true");
+    $("#clave").focus();
+    return;
+  }
+  if (!ensayo) {
+    mostrarAviso("#aviso-principal", "error", "No hay texto que evaluar.", "Escribe o pega la respuesta extendida en el recuadro.");
+    $("#ensayo").focus();
+    return;
+  }
+  if (c.palabras < 120) {
+    mostrarAviso("#aviso-principal", "", "El texto es demasiado breve para una evaluación con la rúbrica.",
+      "Tiene " + c.palabras + " palabras. La rúbrica oficial exige una muestra suficiente de escritura: por debajo de las 150 palabras la respuesta se considera, por regla general, insuficiente para demostrar dominio. Desarrolla el texto hasta acercarse a las 300 palabras y vuelve a intentarlo.", [
+        "Introducción con la tesis sobre cuál argumento está mejor fundamentado.",
+        "Dos o tres párrafos de cuerpo, cada uno con evidencia de los textos y su análisis.",
+        "Conclusión que sintetice el razonamiento."
+      ]);
+    return;
+  }
+
+  const datos = {
+    ensayo,
+    consigna: $("#consigna").value.trim(),
+    a: $("#fuente-a").value.trim(),
+    b: $("#fuente-b").value.trim(),
+    rigor: $("#rigor").value,
+    c
+  };
+
+  control = new AbortController();
+  $("#btn-evaluar").disabled = true;
+  $("#btn-evaluar").textContent = "Evaluando…";
+  $("#btn-cancelar").hidden = false;
+  $("#cargando").classList.add("visible");
+  $("#informe").classList.remove("visible");
+
+  try {
+    const consulta = construirConsulta(datos);
+    let resultado = await pedirEvaluacion(consulta);
+    let json;
+    try {
+      json = extraerJSON(resultado.texto);
+    } catch (e) {
+      $("#cargando-txt").textContent = "Ajustando el formato de la respuesta…";
+      resultado = await pedirEvaluacion(consulta + "\n\nATENCIÓN: la respuesta anterior no fue un JSON válido. Devuelve exclusivamente el objeto JSON, sin ningún otro carácter.");
+      json = extraerJSON(resultado.texto);
+    }
+    ultimoInforme = { json, datos, modelo: resultado.modelo, fecha: new Date() };
+    pintarInforme(ultimoInforme);
+  } catch (e) {
+    if (e.name === "AbortError") {
+      mostrarAviso("#aviso-principal", "", "Evaluación cancelada.", "No se realizó ningún cambio.");
+    } else {
+      mostrarAviso("#aviso-principal", "error", "No fue posible completar la evaluación.", traducirError(e));
+      console.error(e);
+    }
+  } finally {
+    $("#cargando").classList.remove("visible");
+    $("#btn-evaluar").disabled = false;
+    $("#btn-evaluar").textContent = "Evaluar la respuesta";
+    $("#btn-cancelar").hidden = true;
+    control = null;
+  }
+}
+
+$("#btn-evaluar").addEventListener("click", evaluar);
+$("#btn-cancelar").addEventListener("click", () => { if (control) control.abort(); });
+
+
+/* ════════════════════════════════════════════════════════════════════
+   11. INFORME
+   Todo el contenido devuelto por el modelo se inserta como texto,
+   nunca como HTML, para impedir la inyección de marcado.
+   ════════════════════════════════════════════════════════════════════ */
+function anilloSVG(total) {
+  const r = 46, circ = 2 * Math.PI * r, prop = Math.max(0, Math.min(total / 6, 1));
+  const color = total >= 4 ? "var(--n2)" : total >= 2 ? "var(--n1)" : "var(--n0)";
+  return '<svg viewBox="0 0 120 120" width="118" height="118" role="img" aria-label="Puntuación total: ' + total + ' de 6 puntos.">' +
+    '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="var(--borde)" stroke-width="9"></circle>' +
+    '<circle cx="60" cy="60" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="9" stroke-linecap="round" ' +
+    'stroke-dasharray="' + circ + '" stroke-dashoffset="' + (circ * (1 - prop)) + '" transform="rotate(-90 60 60)"></circle>' +
+    '<text class="sello-cifra" x="60" y="66" text-anchor="middle">' + total + '</text>' +
+    '<text class="sello-de" x="60" y="84" text-anchor="middle">de 6 puntos</text></svg>';
+}
+
+function pintarInforme(inf) {
+  const cont = $("#informe-cuerpo");
+  cont.innerHTML = "";
+  const j = inf.json;
+  const rasgos = Array.isArray(j.rasgos) ? j.rasgos : [];
+  const puntos = RUBRICA.map((r) => {
+    const encontrado = rasgos.find((x) => Number(x.numero) === r.n) || {};
+    let p = Number(encontrado.puntuacion);
+    if (!(p === 0 || p === 1 || p === 2)) p = 0;
+    return { def: r, dato: encontrado, p };
+  });
+  const total = puntos.reduce((s, x) => s + x.p, 0);
+
+  /* Cabecera del informe */
+  const cab = crear("div", "informe-cabecera");
+  const sello = crear("div", "sello");
+  sello.innerHTML = anilloSVG(total);
+  const pie = crear("p", "sello-pie");
+  pie.appendChild(document.createTextNode("Puntos brutos: "));
+  pie.appendChild(crear("b", null, (total * 2) + "/12"));
+  sello.appendChild(pie);
+  cab.appendChild(sello);
+
+  const ver = crear("div", "veredicto");
+  ver.appendChild(crear("h2", null, "Resultado: " + total + " de 6 puntos"));
+  ver.appendChild(crear("p", null, j.veredicto || "Sin veredicto."));
+  const meta = crear("p", "sello-pie");
+  meta.style.marginTop = "10px";
+  meta.textContent = "Rasgo 1: " + puntos[0].p + " · Rasgo 2: " + puntos[1].p + " · Rasgo 3: " + puntos[2].p +
+    " · " + inf.datos.c.palabras + " palabras · " + inf.fecha.toLocaleString("es") + " · modelo: " + inf.modelo;
+  ver.appendChild(meta);
+  cab.appendChild(ver);
+  cont.appendChild(cab);
+
+  if (j.limitacion && String(j.limitacion).trim()) {
+    const av = crear("div", "aviso");
+    av.appendChild(crear("strong", null, "Alcance de esta evaluación"));
+    av.appendChild(document.createTextNode(String(j.limitacion)));
+    cont.appendChild(av);
+  }
+
+  /* Tesis */
+  if (j.tesis_detectada || j.tesis_sugerida) {
+    const t = crear("div", "rasgo");
+    t.appendChild(crear("h3", null, "Tesis"));
+    if (j.tesis_detectada) {
+      const b = crear("div", "bloque");
+      b.appendChild(crear("h4", null, "Tesis detectada en la respuesta"));
+      b.appendChild(crear("p", "cita", j.tesis_detectada));
+      t.appendChild(b);
+    }
+    if (j.tesis_sugerida) {
+      const b = crear("div", "bloque");
+      b.appendChild(crear("h4", null, "Formulación modelo"));
+      b.appendChild(crear("p", "cita", j.tesis_sugerida));
+      t.appendChild(b);
+    }
+    cont.appendChild(t);
+  }
+
+  /* Rasgos */
+  puntos.forEach((x) => {
+    const card = crear("div", "rasgo");
+    const cabR = crear("div", "rasgo-cabecera");
+    cabR.appendChild(crear("div", "rasgo-num", String(x.def.n)));
+    const tit = crear("div");
+    tit.appendChild(crear("h3", null, x.def.nombre));
+    tit.appendChild(crear("p", "sub", x.def.foco));
+    cabR.appendChild(tit);
+    card.appendChild(cabR);
+
+    /* Regleta: el elemento distintivo del informe */
+    const reg = crear("div", "regleta");
+    const pista = crear("div", "regleta-pista");
+    pista.setAttribute("role", "img");
+    pista.setAttribute("aria-label", "Rasgo " + x.def.n + ": " + x.p + " de 2 puntos.");
+    [0, 1, 2].forEach((n) => {
+      const nv = crear("div", "regleta-nivel " + (n === x.p ? "marcado " + NIVEL_CLASE[n] : ""), String(n));
+      pista.appendChild(nv);
+    });
+    reg.appendChild(pista);
+    const desc = crear("div", "regleta-desc " + NIVEL_CLASE[x.p]);
+    desc.appendChild(crear("b", null, NIVEL_ETIQUETA[x.p]));
+    desc.appendChild(document.createTextNode(x.def.niveles[x.p]));
+    reg.appendChild(desc);
+    card.appendChild(reg);
+
+    if (x.dato.sintesis) {
+      const b = crear("div", "bloque");
+      b.appendChild(crear("h4", null, "Justificación"));
+      b.appendChild(crear("p", null, x.dato.sintesis));
+      card.appendChild(b);
+    }
+
+    const inds = Array.isArray(x.dato.indicadores) ? x.dato.indicadores : [];
+    if (inds.length) {
+      const b = crear("div", "bloque");
+      b.appendChild(crear("h4", null, "Indicadores de diagnóstico"));
+      const ul = crear("ul", "indicadores");
+      inds.forEach((ind) => {
+        const est = ["logrado", "parcial", "ausente"].indexOf(String(ind.estado || "").toLowerCase()) >= 0
+          ? String(ind.estado).toLowerCase() : "parcial";
+        const li = crear("li", est);
+        const marca = crear("span", "marca-est " + est, est === "logrado" ? "Sí" : est === "parcial" ? "En parte" : "No");
+        li.appendChild(marca);
+        const txt = crear("div");
+        txt.appendChild(crear("span", "crit", ind.criterio || ""));
+        if (ind.comentario) txt.appendChild(crear("span", "com", ind.comentario));
+        li.appendChild(txt);
+        ul.appendChild(li);
       });
+      b.appendChild(ul);
+      card.appendChild(b);
+    }
 
-      form.addEventListener('submit', handleSendMessage);
-    </script>
-  </body>
+    const subir = Array.isArray(x.dato.para_subir_de_nivel) ? x.dato.para_subir_de_nivel : [];
+    if (subir.length && x.p < 2) {
+      const b = crear("div", "bloque");
+      b.appendChild(crear("h4", null, "Para alcanzar los 2 puntos en este rasgo"));
+      const ul = crear("ul", "lista-simple");
+      subir.forEach((s) => ul.appendChild(crear("li", null, s)));
+      b.appendChild(ul);
+      card.appendChild(b);
+    }
+    cont.appendChild(card);
+  });
+
+  /* Uso de los textos fuente */
+  const citasA = Array.isArray(j.citas_del_texto_a) ? j.citas_del_texto_a : [];
+  const citasB = Array.isArray(j.citas_del_texto_b) ? j.citas_del_texto_b : [];
+  const opin = Array.isArray(j.opinion_personal) ? j.opinion_personal : [];
+  const ev = crear("div", "rasgo");
+  ev.appendChild(crear("h3", null, "Uso de los textos fuente"));
+  const resumenEv = crear("p", null,
+    "Evidencia atribuida al texto A: " + citasA.length + ". Evidencia atribuida al texto B: " + citasB.length +
+    ((citasA.length && citasB.length) ? ". Se cumple el requisito de emplear ambos textos."
+      : ". No se cumple el requisito de emplear ambos textos, que es indispensable para obtener 2 puntos en el rasgo 1."));
+  ev.appendChild(resumenEv);
+  [["Texto A", citasA], ["Texto B", citasB]].forEach((par) => {
+    if (!par[1].length) return;
+    const b = crear("div", "bloque");
+    b.appendChild(crear("h4", null, "Evidencia atribuida al " + par[0].toLowerCase()));
+    par[1].forEach((q) => b.appendChild(crear("p", "cita", q)));
+    ev.appendChild(b);
+  });
+  if (opin.length) {
+    const b = crear("div", "bloque");
+    b.appendChild(crear("h4", null, "Fragmentos de opinión personal que conviene reformular"));
+    opin.forEach((q) => b.appendChild(crear("p", "cita", q)));
+    b.appendChild(crear("p", null, "La tarea no pregunta qué opina el estudiante sobre el tema, sino qué autor respalda mejor su postura con la evidencia de los textos."));
+    ev.appendChild(b);
+  }
+  cont.appendChild(ev);
+
+  /* Fortalezas y prioridades */
+  const forts = Array.isArray(j.fortalezas) ? j.fortalezas : [];
+  const prio = Array.isArray(j.prioridades) ? j.prioridades : [];
+  if (forts.length || prio.length) {
+    const plan = crear("div", "rasgo");
+    plan.appendChild(crear("h3", null, "Plan de mejora"));
+    if (forts.length) {
+      const b = crear("div", "bloque");
+      b.appendChild(crear("h4", null, "Fortalezas que conviene conservar"));
+      const ul = crear("ul", "lista-simple");
+      forts.forEach((f) => ul.appendChild(crear("li", null, f)));
+      b.appendChild(ul);
+      plan.appendChild(b);
+    }
+    if (prio.length) {
+      const b = crear("div", "bloque");
+      b.appendChild(crear("h4", null, "Prioridades en orden de impacto"));
+      prio.forEach((p, i) => {
+        const d = crear("div", "prioridad");
+        d.appendChild(crear("h4", null, (i + 1) + ". " + (p.titulo || "Prioridad")));
+        if (p.porque) d.appendChild(crear("p", null, p.porque));
+        if (p.como) d.appendChild(crear("p", null, p.como));
+        if (p.ejemplo) {
+          const ej = crear("div", "modelo-txt");
+          ej.appendChild(crear("strong", null, "Modelo de reescritura: "));
+          ej.appendChild(document.createTextNode(p.ejemplo));
+          d.appendChild(ej);
+        }
+        b.appendChild(d);
+      });
+      plan.appendChild(b);
+    }
+    cont.appendChild(plan);
+  }
+
+  const nota = crear("p", "sello-pie");
+  nota.style.marginTop = "14px";
+  nota.textContent = "Esta evaluación es una simulación docente basada en la rúbrica oficial publicada por el GED Testing Service. No procede del sistema de calificación del examen ni predice su resultado.";
+  cont.appendChild(nota);
+
+  $("#informe").classList.add("visible");
+  $("#informe").focus();
+  $("#informe").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   12. EXPORTACIÓN
+   ════════════════════════════════════════════════════════════════════ */
+function informeComoTexto() {
+  if (!ultimoInforme) return "";
+  const j = ultimoInforme.json;
+  const L = [];
+  L.push("EVALUACIÓN DE LA RESPUESTA EXTENDIDA DEL GED");
+  L.push("Fecha: " + ultimoInforme.fecha.toLocaleString("es"));
+  L.push("Extensión: " + ultimoInforme.datos.c.palabras + " palabras, " + ultimoInforme.datos.c.parrafos + " párrafos.");
+  const rs = Array.isArray(j.rasgos) ? j.rasgos : [];
+  let total = 0;
+  RUBRICA.forEach((r) => {
+    const d = rs.find((x) => Number(x.numero) === r.n) || {};
+    const p = [0, 1, 2].indexOf(Number(d.puntuacion)) >= 0 ? Number(d.puntuacion) : 0;
+    total += p;
+  });
+  L.push("Puntuación total: " + total + "/6 (" + (total * 2) + "/12 puntos brutos).");
+  L.push("");
+  L.push("VEREDICTO");
+  L.push(j.veredicto || "");
+  L.push("");
+  RUBRICA.forEach((r) => {
+    const d = rs.find((x) => Number(x.numero) === r.n) || {};
+    const p = [0, 1, 2].indexOf(Number(d.puntuacion)) >= 0 ? Number(d.puntuacion) : 0;
+    L.push("RASGO " + r.n + ": " + r.nombre + " — " + p + "/2");
+    if (d.sintesis) L.push(d.sintesis);
+    (d.indicadores || []).forEach((i) => L.push("  [" + (i.estado || "") + "] " + (i.criterio || "") + " " + (i.comentario || "")));
+    (d.para_subir_de_nivel || []).forEach((s) => L.push("  → " + s));
+    L.push("");
+  });
+  (j.prioridades || []).forEach((p, i) => {
+    L.push("PRIORIDAD " + (i + 1) + ": " + (p.titulo || ""));
+    if (p.porque) L.push("  " + p.porque);
+    if (p.como) L.push("  " + p.como);
+    if (p.ejemplo) L.push("  Modelo: " + p.ejemplo);
+  });
+  L.push("");
+  L.push("Instrumento de práctica docente. No procede del sistema oficial de calificación del GED.");
+  L.push("José M. Fernández — Harry S. Truman College. CC BY-NC-SA 4.0.");
+  return L.join("\n");
+}
+
+$("#btn-imprimir").addEventListener("click", () => window.print());
+
+$("#btn-copiar").addEventListener("click", async function () {
+  const t = informeComoTexto();
+  if (!t) return;
+  try {
+    await navigator.clipboard.writeText(t);
+    this.textContent = "Informe copiado";
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = t; ta.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); this.textContent = "Informe copiado"; } catch (e2) { this.textContent = "No se pudo copiar"; }
+    document.body.removeChild(ta);
+  }
+  setTimeout(() => { this.textContent = "Copiar el informe como texto"; }, 2500);
+});
+
+$("#btn-descargar").addEventListener("click", () => {
+  if (!ultimoInforme) return;
+  const cuerpo = $("#informe-cuerpo").innerHTML;
+  const estilos = document.querySelector("style").textContent;
+  const ensayo = ultimoInforme.datos.ensayo.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const html = "<!DOCTYPE html>\n<!-- Informe de evaluación. CC BY-NC-SA 4.0. José M. Fernández, Harry S. Truman College. -->\n" +
+    '<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
+    "<title>Informe de evaluación — respuesta extendida del GED</title>" +
+    '<meta name="license" content="CC BY-NC-SA 4.0"><link rel="license" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es">' +
+    "<style>" + estilos + "</style></head><body><main class=\"lienzo\" style=\"padding-top:22px\">" +
+    "<h1 style=\"font-family:var(--serif)\">Informe de evaluación de la respuesta extendida del GED</h1>" +
+    cuerpo +
+    "<div class=\"rasgo\"><h3>Respuesta evaluada</h3><p style=\"white-space:pre-wrap\">" + ensayo + "</p></div>" +
+    "<footer><p>José M. Fernández, ABE/ASE Math Master Teacher, Harry S. Truman College — City Colleges of Chicago.</p>" +
+    '<p>Obra bajo licencia <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.es" rel="license">CC BY-NC-SA 4.0</a>.</p></footer>' +
+    "</main></body></html>";
+  const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "informe-respuesta-extendida-" + new Date().toISOString().slice(0, 10) + ".html";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+});
+
+
+/* ════════════════════════════════════════════════════════════════════
+   13. EJEMPLO DE DEMOSTRACIÓN
+   Respuesta de nivel intermedio, útil para modelar la evaluación en
+   clase: tiene tesis, pero desequilibra el uso de los dos textos.
+   ════════════════════════════════════════════════════════════════════ */
+const EJEMPLO = {
+  consigna: "Los dos textos presentan posturas opuestas sobre la conveniencia de implantar el horario escolar de inicio tardío. Analice ambas posturas y determine cuál está mejor fundamentada. Utilice evidencia pertinente y específica de ambos textos para respaldar su respuesta.",
+  a: "El doctor Ramón Estévez, investigador del sueño en la Universidad Central, sostiene que retrasar el inicio de la jornada escolar mejora el rendimiento académico. Un estudio de tres años realizado en catorce escuelas secundarias, con una muestra de 9 400 estudiantes, halló que los planteles que iniciaron a las 8:30 registraron un aumento de 4,5 puntos en las calificaciones promedio y una reducción del 21 % en las ausencias. Estévez explica que el reloj biológico del adolescente se desplaza durante la pubertad, de modo que resulta fisiológicamente difícil conciliar el sueño antes de las once de la noche. Añade que la Academia Nacional de Pediatría recomienda desde 2014 que ninguna escuela secundaria comience antes de las 8:30 de la mañana.",
+  b: "La señora Marta Colón, madre de tres estudiantes y presidenta de una asociación de padres, se opone al cambio de horario. Afirma que retrasar el inicio de las clases desorganizaría a las familias trabajadoras, que dependen del horario escolar para organizar su jornada laboral. Sostiene que su propia experiencia lo demuestra: cuando su hija cambió de escuela, la familia atravesó meses de dificultades. Colón considera que el verdadero problema no es el horario, sino que los jóvenes de hoy pasan demasiadas horas frente a las pantallas. Concluye que todo el mundo sabe que un poco de disciplina resuelve el asunto sin necesidad de trastornar la vida de las comunidades.",
+  ensayo: "El horario de entrada a la escuela es un tema que se discute mucho hoy en día. En los dos textos hay opiniones diferentes sobre si las clases deben empezar más tarde. Después de leer los dos textos, considero que el argumento del doctor Estévez está mejor fundamentado, porque presenta datos concretos mientras que la señora Colón se apoya sobre todo en su experiencia personal.\n\nEn primer lugar, el doctor Estévez respalda su postura con un estudio de tres años en catorce escuelas y una muestra de 9 400 estudiantes. Los resultados muestran un aumento de 4,5 puntos en las calificaciones y una reducción del 21 % en las ausencias. Estos son datos verificables y no simples impresiones. Además menciona la recomendación de la Academia Nacional de Pediatría, que es una fuente reconocida en el campo de la salud infantil.\n\nOtra razón es que Estévez explica el mecanismo por el cual el cambio funciona. No se limita a decir que los estudiantes rinden más, sino que aclara que el reloj biológico del adolescente se desplaza durante la pubertad. Esa explicación conecta la evidencia con la conclusión.\n\nLa señora Colón, en cambio, sostiene su postura sobre todo con su propia experiencia familiar. Cuenta que cuando su hija cambió de escuela la familia atravesó meses de dificultades, pero un caso particular no permite concluir que el cambio de horario perjudique a todas las familias trabajadoras. Después afirma que todo el mundo sabe que un poco de disciplina resuelve el asunto, una afirmación que no está respaldada por ningún dato ni por ninguna autoridad en la materia. Tampoco explica por qué las pantallas serían la verdadera causa del problema. Yo pienso que las madres tienen mucha experiencia, pero eso no es lo mismo que un estudio.\n\nEn conclusión, el texto del doctor Estévez está mejor fundamentado. Usa datos, cita una organización profesional y explica sus razones. Por eso su argumento resulta más convincente."
+};
+
+$("#btn-ejemplo").addEventListener("click", () => {
+  $("#consigna").value = EJEMPLO.consigna;
+  $("#fuente-a").value = EJEMPLO.a;
+  $("#fuente-b").value = EJEMPLO.b;
+  $("#ensayo").value = EJEMPLO.ensayo;
+  actualizarMedidor();
+  guardarBorrador();
+  document.querySelectorAll("#columna-lateral details").forEach((d) => { d.open = true; });
+  mostrarAviso("#aviso-principal", "exito", "Ejemplo cargado.",
+    "Se cargaron la consigna, los dos textos fuente y una respuesta de nivel intermedio. Es útil para modelar la evaluación ante el grupo antes de que los estudiantes trabajen con sus propios textos.");
+  $("#ensayo").scrollIntoView({ block: "center" });
+});
+
+
+/* ════════════════════════════════════════════════════════════════════
+   14. GUÍA DE PUESTA EN MARCHA
+   Solo está presente en la versión pensada para compartir. El código
+   comprueba que exista antes de activarlo.
+   ════════════════════════════════════════════════════════════════════ */
+(function guia() {
+  const velo = $("#velo-guia");
+  if (!velo) return;
+  const abrir = document.querySelectorAll("[data-abre-guia]");
+  const cerrar = velo.querySelectorAll("[data-cierra-guia]");
+  let previo = null;
+
+  function focoInterno() {
+    return velo.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  }
+  function abrirGuia(e) {
+    // Se recuerda el botón que la abrió, no el foco del momento: así el
+    // foco vuelve a su sitio aunque se haya abierto con el ratón.
+    previo = (e && e.currentTarget) || document.activeElement;
+    velo.classList.add("abierto");
+    document.body.style.overflow = "hidden";
+    abrir.forEach((b) => b.setAttribute("aria-expanded", "true"));
+    const f = focoInterno();
+    if (f.length) f[0].focus();
+  }
+  function cerrarGuia() {
+    velo.classList.remove("abierto");
+    document.body.style.overflow = "";
+    abrir.forEach((b) => b.setAttribute("aria-expanded", "false"));
+    if (previo && previo.focus) previo.focus();
+  }
+  function quitarRealce() {
+    abrir.forEach((b) => b.classList.remove("destacado"));
+  }
+
+  abrir.forEach((b) => b.addEventListener("click", function (e) {
+    quitarRealce();
+    alm("ged_re_guia_vista", "1");
+    abrirGuia(e);
+  }));
+
+  // El realce solo acompaña al primer uso: desaparece en cuanto se
+  // consulta la guía o si ya hay una clave configurada en el equipo.
+  if (alm("ged_re_guia_vista") || alm(CLAVE_ALM)) quitarRealce();
+  cerrar.forEach((b) => b.addEventListener("click", cerrarGuia));
+  velo.addEventListener("click", (e) => { if (e.target === velo) cerrarGuia(); });
+  document.addEventListener("keydown", (e) => {
+    if (!velo.classList.contains("abierto")) return;
+    if (e.key === "Escape") { cerrarGuia(); return; }
+    if (e.key !== "Tab") return;
+    const f = focoInterno();
+    if (!f.length) return;
+    const primero = f[0], ultimo = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
+    else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
+  });
+})();
+
+
+/* ════════════════════════════════════════════════════════════════════
+   15. ARRANQUE
+   ════════════════════════════════════════════════════════════════════ */
+(function iniciar() {
+  aplicarPreferencias();
+  pintarTablaRubrica();
+  recuperarBorrador();
+  actualizarMedidor();
+  pintarReloj();
+  document.querySelectorAll(".etiqueta[id]").forEach((sp) => {
+    sp.addEventListener("click", () => {
+      const c = document.querySelector('[aria-labelledby="' + sp.id + '"]');
+      if (c) c.focus();
+    });
+  });
+  const clave = alm(CLAVE_ALM);
+  if (clave) { $("#clave").value = clave; refrescarModelos(false); }
+  else {
+    $("#panel-config").hidden = false;
+    $("#btn-config").setAttribute("aria-expanded", "true");
+  }
+})();
+</script>
+</body>
 </html>
