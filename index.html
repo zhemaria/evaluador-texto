@@ -693,6 +693,25 @@ const PROVEEDOR = {
     return p;
   },
 
+  /* El plan gratuito de Groq no cobra por token: solo limita el uso.
+     Sus mensajes mencionan «service tier» y «Upgrade» aunque el problema
+     no tenga nada que ver con el plan, así que el orden de lectura importa. */
+  traducir(m) {
+    if (/request too large|reduce your message size/i.test(m)) {
+      return "La consulta superó el cupo por minuto del plan gratuito de Groq. La herramienta ha ajustado su reserva de tokens al límite real de su cuenta: vuelva a pulsar «Evaluar la respuesta».";
+    }
+    if (/tokens per day|\bTPD\b/i.test(m)) {
+      return "Se agotó el cupo diario de ese modelo en su cuenta de Groq. El cupo se cuenta por modelo: elija otro en Configuración o espere al reinicio diario.";
+    }
+    if (/tokens per minute|\bTPM\b|requests per minute|\bRPM\b|requests per day|\bRPD\b/i.test(m)) {
+      return "Se alcanzó el cupo por minuto del plan gratuito de Groq. Espere un minuto y vuelva a intentarlo; los cupos se cuentan por modelo, de modo que también puede elegir otro en Configuración.";
+    }
+    if (/model_not_found|not available|no access|requires.{0,24}(paid|dev|enterprise)/i.test(m)) {
+      return "Ese modelo no está disponible para su cuenta de Groq. Abra Configuración y elija otro de la lista.";
+    }
+    return null;
+  },
+
   async listarModelos(clave) {
     const r = await fetch("https://api.groq.com/openai/v1/models", {
       method: "GET",
@@ -710,7 +729,33 @@ const PROVEEDOR = {
       .filter((m) => m.puntaje > 0);
   },
 
+  /* Cupo de tokens por minuto. Se parte de 8000, que es el del plan
+     gratuito, y se corrige solo: la respuesta del proveedor trae el
+     límite real en sus cabeceras, y sus errores también lo declaran. */
+  limiteTPM() {
+    const guardado = parseInt(alm("ged_re_groq_tpm") || "", 10);
+    return guardado > 0 ? guardado : 8000;
+  },
+
+  fijarTPM(n) {
+    if (n > 0 && n !== PROVEEDOR.limiteTPM()) alm("ged_re_groq_tpm", String(n));
+  },
+
+  /* El proveedor suma lo enviado y lo reservado para la respuesta, así
+     que la reserva debe caber en lo que queda del cupo. */
+  presupuestoSalida(texto) {
+    const entrada = Math.ceil(String(texto).length / 3.2);
+    const disponible = PROVEEDOR.limiteTPM() - entrada - 300;
+    return { entrada, salida: Math.max(0, Math.min(6000, disponible)) };
+  },
+
   async completar(op) {
+    let presupuesto = PROVEEDOR.presupuestoSalida(op.sistema + op.consulta);
+    if (presupuesto.salida < 1200) {
+      throw new Error("Los textos son demasiado extensos para el cupo por minuto de su cuenta de Groq ("
+        + PROVEEDOR.limiteTPM() + " tokens por minuto). Recorte los textos fuente, o quíteles las partes que el estudiante no cita, y vuelva a intentarlo.");
+    }
+
     async function enviar(extras) {
       const cuerpo = Object.assign({
         model: op.modelo,
@@ -719,7 +764,7 @@ const PROVEEDOR = {
           { role: "user", content: op.consulta }
         ],
         temperature: 0.2,
-        max_completion_tokens: 12000
+        max_completion_tokens: presupuesto.salida
       }, extras || {});
       const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -730,6 +775,8 @@ const PROVEEDOR = {
         },
         body: JSON.stringify(cuerpo)
       });
+      const declarado = parseInt(r.headers.get("x-ratelimit-limit-tokens") || "", 10);
+      if (declarado > 0) PROVEEDOR.fijarTPM(declarado);
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
         const e = new Error((j.error && j.error.message) || ("Error " + r.status));
@@ -747,13 +794,28 @@ const PROVEEDOR = {
     // los modelos admiten. Si el proveedor los rechaza, se reintenta sin ellos.
     const extras = { response_format: { type: "json_object" } };
     if (/gpt-oss/i.test(op.modelo)) {
-      extras.reasoning_effort = "medium";
+      // El razonamiento también consume cupo: se mantiene en lo justo.
+      extras.reasoning_effort = "low";
       extras.reasoning_format = "hidden";
     }
+
     try {
       return await enviar(extras);
     } catch (e) {
       const m = String(e.message || "");
+
+      // El proveedor declara el límite real dentro del propio error.
+      const declarado = (m.match(/Limit\s+(\d+)/i) || [])[1];
+      if (/request too large/i.test(m) && declarado) {
+        PROVEEDOR.fijarTPM(parseInt(declarado, 10));
+        presupuesto = PROVEEDOR.presupuestoSalida(op.sistema + op.consulta);
+        if (presupuesto.salida < 1200) {
+          throw new Error("Los textos son demasiado extensos para el cupo por minuto de su cuenta de Groq ("
+            + declarado + " tokens por minuto). Recorte los textos fuente y vuelva a intentarlo.");
+        }
+        return await enviar(extras);   // mismo modelo, reserva ajustada
+      }
+
       if (e.estado === 400 && /response_format|reasoning|json|max_completion_tokens|unsupported|unrecognized/i.test(m)) {
         return await enviar(null);
       }
@@ -1018,8 +1080,9 @@ async function refrescarModelos(forzar) {
     modelosDisponibles = PROVEEDOR.modelosRespaldo.map((id) => ({ id, nombre: id, puntaje: 0 }));
     pintarModelos();
     estadoMotor("fallo", "No se pudo consultar la lista. Se usará la lista de respaldo:", modeloElegido());
-    mostrarAviso("#aviso-config", "", "No se pudo consultar la lista de modelos.",
+    const caja = mostrarAviso("#aviso-config", "", "No se pudo consultar la lista de modelos.",
       traducirError(e) + " La herramienta seguirá funcionando con su lista interna de respaldo.");
+    detalleTecnico(caja, e, null);
   }
 }
 
@@ -1301,15 +1364,43 @@ function extraerJSON(texto) {
 
 function traducirError(e) {
   const m = String((e && e.message) || e || "");
-  if (/401|unauthorized|invalid.*api.*key|authentication/i.test(m)) return "La clave no es válida o ha caducado. Revísala en Configuración.";
-  if (/403|permission|forbidden/i.test(m)) return "La clave no tiene permiso para este modelo o para esta operación.";
-  if (/429|rate.?limit|quota/i.test(m)) return "Se alcanzó el límite de uso del proveedor. Espera unos minutos y vuelve a intentarlo.";
-  if (/credit|billing|insufficient/i.test(m)) return "La cuenta no tiene saldo o crédito suficiente en el proveedor.";
-  if (/failed to fetch|networkerror|load failed/i.test(m)) return "No hubo conexión con el proveedor. Comprueba tu red; si abriste el archivo desde una carpeta local, prueba a servirlo desde un sitio web.";
-  if (/model|not.?found|decommission|deprecat/i.test(m)) return "El modelo indicado ya no está disponible en el proveedor.";
+  // Cada proveedor puede afinar la lectura de sus propios mensajes.
+  if (PROVEEDOR.traducir) { const propia = PROVEEDOR.traducir(m); if (propia) return propia; }
+  // El orden importa: «credentials» contiene «credit», de modo que la
+  // comprobación de la clave debe ir siempre antes que la de facturación.
+  if (/\b401\b|unauthorized|authentication|credential|invalid[^.]{0,24}(api)?[ _-]?key|api[ _-]?key[^.]{0,24}invalid/i.test(m))
+    return "La clave no es válida, está incompleta o ha sido revocada. Genere una nueva y guárdela otra vez en Configuración.";
+  if (/\b403\b|permission|forbidden/i.test(m))
+    return "La clave no tiene permiso para este modelo o para esta operación.";
+  if (/\b429\b|rate.?limit|tokens per (day|minute)|\bTPD\b|\bTPM\b|\bRPD\b|\bRPM\b|quota/i.test(m))
+    return "Se alcanzó el límite de uso del proveedor para este modelo. Los límites se cuentan por modelo y se renuevan solos: espere unos minutos o elija otro modelo en Configuración.";
+  if (/\bcredits?\b|\bbilling\b|payment required|\b402\b|insufficient[ _-]?(funds|balance|credits?)/i.test(m))
+    return "El proveedor informa de un problema de facturación o de plan. El modelo elegido puede requerir una cuenta de pago: pruebe con otro modelo en Configuración.";
+  if (/failed to fetch|networkerror|load failed|\bECONNRESET\b/i.test(m))
+    return "No hubo conexión con el proveedor. Compruebe su red; si abrió el archivo desde una carpeta local, pruebe a servirlo desde un sitio web.";
+  if (/decommission|deprecat|does not exist|\b404\b|model.{0,20}not.{0,10}found/i.test(m))
+    return "El modelo indicado ya no está disponible en el proveedor.";
+  if (/se cortó por longitud/i.test(m)) return m;
   return m || "Error desconocido.";
 }
 
+/* Añade el mensaje literal del proveedor bajo un desplegable, para que
+   cualquier fallo pueda diagnosticarse sin tener que adivinar. */
+function detalleTecnico(caja, e, modelo) {
+  const m = String((e && e.message) || e || "");
+  if (!m) return;
+  const det = crear("details");
+  det.style.marginTop = "10px";
+  det.appendChild(crear("summary", null, "Detalle técnico"));
+  const cuerpo = crear("div", "det-cuerpo");
+  const pre = crear("p", null, m);
+  pre.style.cssText = "font-family:var(--mono);font-size:.82rem;word-break:break-word;margin:0 0 6px";
+  cuerpo.appendChild(pre);
+  cuerpo.appendChild(crear("p", null, "Proveedor: " + PROVEEDOR.nombre + " · modelo: " + (modelo || "no determinado")));
+  cuerpo.lastChild.style.cssText = "font-size:.8rem;color:var(--texto-sec);margin:0";
+  det.appendChild(cuerpo);
+  caja.appendChild(det);
+}
 
 /* ════════════════════════════════════════════════════════════════════
    9. LLAMADA CON AUTORREPARACIÓN DE MODELO
@@ -1317,6 +1408,8 @@ function traducirError(e) {
    consultar la lista y se reintenta con el siguiente mejor.
    ════════════════════════════════════════════════════════════════════ */
 let control = null;
+
+let ultimoModeloFallido = null;
 
 async function pedirEvaluacion(consulta) {
   const clave = alm(CLAVE_ALM);
@@ -1327,7 +1420,7 @@ async function pedirEvaluacion(consulta) {
     const modelo = modeloElegido();
     $("#cargando-txt").textContent = intento === 0
       ? "Aplicando la rúbrica oficial con " + modelo + "…"
-      : "Reintentando con " + modelo + "…";
+      : "El modelo anterior no respondió. Reintentando con " + modelo + "…";
     try {
       const texto = await PROVEEDOR.completar({ clave, modelo, sistema: SISTEMA, consulta, senal: control.signal });
       return { texto, modelo };
@@ -1335,8 +1428,12 @@ async function pedirEvaluacion(consulta) {
       if (e.name === "AbortError") throw e;
       ultimoError = e;
       const m = String(e.message || "");
-      const modeloCaido = /model|not.?found|decommission|deprecat|404|does not exist/i.test(m);
-      if (!modeloCaido) throw e;
+      // Motivos por los que conviene probar con otro modelo: retirada del
+      // catálogo, modelo reservado a cuentas de pago o límite de uso, que
+      // en estos proveedores se cuenta por modelo y no por cuenta.
+      const conviteneOtroModelo = /decommission|deprecat|does not exist|\b404\b|model.{0,20}not.{0,10}found|\btier\b|\bcredits?\b|\bbilling\b|\b402\b|\b429\b|rate.?limit|tokens per (day|minute)|\bTPD\b|\bTPM\b/i.test(m);
+      if (!conviteneOtroModelo) throw e;
+      ultimoModeloFallido = modelo;
       modelosDescartados.push(modelo);
       alm(LISTA_ALM, null);
       try {
@@ -1419,7 +1516,8 @@ async function evaluar() {
     if (e.name === "AbortError") {
       mostrarAviso("#aviso-principal", "", "Evaluación cancelada.", "No se realizó ningún cambio.");
     } else {
-      mostrarAviso("#aviso-principal", "error", "No fue posible completar la evaluación.", traducirError(e));
+      const caja = mostrarAviso("#aviso-principal", "error", "No fue posible completar la evaluación.", traducirError(e));
+      detalleTecnico(caja, e, ultimoModeloFallido || modeloElegido());
       console.error(e);
     }
   } finally {
